@@ -4,115 +4,235 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FRIENDLY MEET</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f2f3fa;color:#252442}
-header{background:#5546d8;color:white;text-align:center;padding:25px}
-header h1{margin:0;font-size:30px}
-header p{margin-bottom:0}
-main{max-width:600px;margin:25px auto;padding:15px}
-.card{background:white;padding:22px;border-radius:15px;margin-bottom:18px;box-shadow:0 3px 15px #0001}
-input,textarea{width:100%;padding:13px;margin:8px 0;border:1px solid #ddd;border-radius:9px;font-size:15px}
-button{background:#5546d8;color:white;border:0;padding:12px 18px;border-radius:9px;font-weight:bold;cursor:pointer;margin:5px 0}
-button:hover{background:#4032b7}
-.switch{text-align:center;color:#5546d8;cursor:pointer}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f4f8;color:#222}
+header{background:#2457d6;color:white;padding:22px;text-align:center}
+header h1{margin:0;font-size:28px}
+header p{margin:8px 0 0}
+main{max-width:650px;margin:25px auto;padding:0 14px}
+.card{background:white;padding:20px;border-radius:12px;margin-bottom:18px;box-shadow:0 2px 9px #00000010}
+h2{margin-top:0;color:#2457d6}
+input,textarea{width:100%;padding:12px;margin:7px 0;border:1px solid #ccc;border-radius:7px;font-size:15px}
+textarea{min-height:90px;resize:vertical}
+button{background:#2457d6;color:white;border:0;padding:12px 17px;border-radius:7px;cursor:pointer;margin:5px 4px 5px 0}
+button:hover{background:#1743ae}
+button.secondary{background:#555}
+.post{border-top:1px solid #eee;padding:15px 0}
+.post small{color:#777}
+#status{padding:10px;border-radius:7px;background:#eef2ff;margin-bottom:15px;white-space:pre-wrap}
 .hidden{display:none}
-.post{border-bottom:1px solid #eee;padding:15px 0}
-small{color:#777}
 </style>
 </head>
 <body>
-
 <header>
 <h1>FRIENDLY MEET</h1>
-<p>Meet new people. Make friends. Share moments.</p>
+<p>Meet people. Share moments. Build friendships.</p>
 </header>
 
 <main>
+<div id="status">Welcome to FRIENDLY MEET!</div>
 
-<section class="card" id="signup">
-<h2>Create Your Account</h2>
-<p>Join the FRIENDLY MEET community.</p>
-<input id="newName" placeholder="Your full name">
-<input id="newEmail" type="email" placeholder="Your email address">
-<input id="newPassword" type="password" placeholder="Create a password">
-<button onclick="register()">Sign Up</button>
-<p class="switch" onclick="showLogin()">Already have an account? Log in</p>
+<section class="card" id="authCard">
+<h2>Create your account</h2>
+<input id="name" placeholder="Your display name">
+<input id="email" type="email" placeholder="Email address">
+<input id="password" type="password" placeholder="Password">
+<button id="signup">Sign Up</button>
+<button id="login" class="secondary">Log In</button>
+<p><small>Use the same email and password when logging in.</small></p>
 </section>
 
-<section class="card hidden" id="login">
-<h2>Welcome Back!</h2>
-<input id="loginEmail" type="email" placeholder="Your email address">
-<input id="loginPassword" type="password" placeholder="Your password">
-<button onclick="login()">Log In</button>
-<p class="switch" onclick="showSignup()">Create a new account</p>
+<section class="card hidden" id="accountCard">
+<h2 id="welcome">Welcome!</h2>
+<button id="logout" class="secondary">Log Out</button>
 </section>
 
-<section class="hidden" id="community">
-<div class="card">
-<h2 id="welcome"></h2>
-<p>You're part of FRIENDLY MEET!</p>
-<button onclick="logout()">Log Out</button>
-</div>
-
-<div class="card">
-<h2>Share a Moment</h2>
-<textarea id="postText" placeholder="What's happening?"></textarea>
-<button onclick="addPost()">Share Post</button>
-</div>
-
-<div class="card">
+<section class="card">
 <h2>Community Feed</h2>
-<div id="feed">Welcome to our community!</div>
+<div id="postArea" class="hidden">
+<textarea id="postText" maxlength="2000" placeholder="What's on your mind?"></textarea>
+<button id="publish">Share Post</button>
 </div>
+<div id="posts">Loading posts...</div>
 </section>
 
+<section class="card">
+<h2>About FRIENDLY MEET</h2>
+<p>A place to meet people, share ideas and build meaningful friendships.</p>
+</section>
 </main>
 
-<script>
-function showLogin(){
-document.getElementById("signup").classList.add("hidden");
-document.getElementById("login").classList.remove("hidden");
+<script type="module">
+const SUPABASE_URL = https:"//odjhvzzgmzekhoicjtcs.supabase.co/rest/v1/";
+const SUPABASE_KEY = "sb_publishable_yioRR30R3qZcDr8UzB-7MQ_KX_a8Ub2";
+
+const statusBox = document.getElementById("status");
+const authCard = document.getElementById("authCard");
+const accountCard = document.getElementById("accountCard");
+const postArea = document.getElementById("postArea");
+const postsBox = document.getElementById("posts");
+
+function showStatus(message) {
+  statusBox.textContent = message;
 }
 
-function showSignup(){
-document.getElementById("login").classList.add("hidden");
-document.getElementById("signup").classList.remove("hidden");
-}
+if (SUPABASE_URL.includes("PASTE_") || SUPABASE_KEY.includes("PASTE_")) {
+  showStatus("Please add your Supabase Project URL and Publishable Key in the code.");
+} else {
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  let currentUser = null;
 
-function register(){
-const name=document.getElementById("newName").value.trim();
-const email=document.getElementById("newEmail").value.trim();
-const password=document.getElementById("newPassword").value;
+  function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;",
+      '"':"&quot;", "'":"&#39;"
+    }[char]));
+  }
 
-if(!name||!email||!password){
-alert("Please fill in all the fields.");
-return;
-}
+  async function refreshAccount() {
+    const { data } = await client.auth.getSession();
+    currentUser = data.session?.user || null;
 
-alert("Registration screen working! Real account creation will be connected next.");
-}
+    authCard.classList.toggle("hidden", !!currentUser);
+    accountCard.classList.toggle("hidden", !currentUser);
+    postArea.classList.toggle("hidden", !currentUser);
 
-function login(){
-alert("Login screen working! Secure account login will be connected next.");
-}
+    if (currentUser) {
+      const name = currentUser.user_metadata?.display_name || currentUser.email;
+      document.getElementById("welcome").textContent = "Welcome, " + name + "!";
+      showStatus("You're logged in to FRIENDLY MEET.");
+    } else {
+      showStatus("Welcome! Sign up or log in to share a post.");
+    }
+    await loadPosts();
+  }
 
-function logout(){
-document.getElementById("community").classList.add("hidden");
-document.getElementById("signup").classList.remove("hidden");
-}
+  async function loadPosts() {
+    postsBox.textContent = "Loading posts...";
+    const { data, error } = await client
+      .from("posts")
+      .select("id, user_id, content, created_at")
+      .order("created_at", { ascending: false });
 
-function addPost(){
-const text=document.getElementById("postText").value.trim();
-if(!text){alert("Write something first!");return;}
+    if (error) {
+      postsBox.textContent = "Could not load posts: " + error.message;
+      return;
+    }
 
-const post=document.createElement("p");
-post.className="post";
-post.textContent=text;
-document.getElementById("feed").prepend(post);
-document.getElementById("postText").value="";
+    postsBox.replaceChildren();
+
+    if (!data || data.length === 0) {
+      postsBox.textContent = "No posts yet. Be the first to share something!";
+      return;
+    }
+
+    for (const post of data) {
+      const article = document.createElement("article");
+      article.className = "post";
+
+      const author = document.createElement("strong");
+      author.textContent = post.user_id === currentUser?.id
+        ? "You"
+        : "FRIENDLY MEET member";
+
+      const content = document.createElement("p");
+      content.textContent = post.content;
+
+      const date = document.createElement("small");
+      date.textContent = new Date(post.created_at).toLocaleString();
+
+      article.append(author, content, date);
+      postsBox.append(article);
+    }
+  }
+
+  document.getElementById("signup").addEventListener("click", async () => {
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    if (!name || !email || password.length < 6) {
+      showStatus("Enter your name, a valid email and a password of at least 6 characters.");
+      return;
+    }
+
+    showStatus("Creating your account...");
+    const { data, error } = await client.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: name } }
+    });
+
+    if (error) {
+      showStatus(error.message);
+    } else if (data.session) {
+      showStatus("Account created successfully!");
+      await refreshAccount();
+    } else {
+      showStatus("Account created! Check your email and confirm your address before logging in.");
+    }
+  });
+
+  document.getElementById("login").addEventListener("click", async () => {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    if (!email || !password) {
+      showStatus("Enter your email and password first.");
+      return;
+    }
+
+    showStatus("Logging in...");
+    const { error } = await client.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      showStatus(error.message);
+    } else {
+      await refreshAccount();
+    }
+  });
+
+  document.getElementById("logout").addEventListener("click", async () => {
+    const { error } = await client.auth.signOut();
+    if (error) showStatus(error.message);
+    else await refreshAccount();
+  });
+
+  document.getElementById("publish").addEventListener("click", async () => {
+    const content = document.getElementById("postText").value.trim();
+
+    if (!currentUser) {
+      showStatus("Please log in first.");
+      return;
+    }
+    if (!content) {
+      showStatus("Write something before sharing.");
+      return;
+    }
+
+    showStatus("Sharing your post...");
+    const { error } = await client.from("posts").insert({
+      user_id: currentUser.id,
+      content
+    });
+
+    if (error) {
+      showStatus(error.message);
+    } else {
+      document.getElementById("postText").value = "";
+      showStatus("Your post has been shared!");
+      await loadPosts();
+    }
+  });
+
+  client.auth.onAuthStateChange(() => {
+    setTimeout(refreshAccount, 0);
+  });
+
+  refreshAccount();
 }
 </script>
-
 </body>
 </html>
