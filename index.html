@@ -5,68 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FRIENDLY MEET</title>
 <style>
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: #f3f5fb;
-  color: #20243a;
-  font-family: Arial, sans-serif;
-}
-header {
-  background: #5546d8;
-  color: white;
-  padding: 25px;
-  text-align: center;
-}
-header h1 { margin: 0; font-size: 28px; }
-header p { margin-bottom: 0; }
-nav {
-  display: flex;
-  justify-content: center;
-  gap: 22px;
-  background: white;
-  padding: 15px;
-  position: sticky;
-  top: 0;
-}
-nav a {
-  color: #5546d8;
-  text-decoration: none;
-  font-weight: bold;
-}
-main {
-  max-width: 650px;
-  margin: 25px auto;
-  padding: 0 14px;
-}
-.card {
-  background: white;
-  padding: 18px;
-  border-radius: 15px;
-  margin-bottom: 18px;
-  box-shadow: 0 3px 14px #18204412;
-}
-textarea {
-  width: 100%;
-  min-height: 90px;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  font: inherit;
-}
-button {
-  background: #5546d8;
-  color: white;
-  border: 0;
-  padding: 11px 17px;
-  border-radius: 9px;
-  font-weight: bold;
-  cursor: pointer;
-}
-.post { line-height: 1.5; }
-.post small { color: #777; }
-.actions { display: flex; gap: 10px; margin-top: 12px; }
-.actions button { background: #eee; color: #4032b7; }
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f2f3fa;color:#252442}
+header{background:#5546d8;color:white;text-align:center;padding:25px}
+header h1{margin:0;font-size:30px}
+header p{margin-bottom:0}
+main{max-width:600px;margin:25px auto;padding:15px}
+.card{background:white;padding:22px;border-radius:15px;margin-bottom:18px;box-shadow:0 3px 15px #0001}
+input,textarea{width:100%;padding:13px;margin:8px 0;border:1px solid #ddd;border-radius:9px;font-size:15px}
+button{background:#5546d8;color:white;border:0;padding:12px 18px;border-radius:9px;font-weight:bold;cursor:pointer;margin:5px 0}
+button:hover{background:#4032b7}
+.switch{text-align:center;color:#5546d8;cursor:pointer}
+.hidden{display:none}
+.post{border-bottom:1px solid #eee;padding:15px 0}
+small{color:#777}
 </style>
 </head>
 <body>
@@ -76,94 +28,90 @@ button {
 <p>Meet new people. Make friends. Share moments.</p>
 </header>
 
-<nav>
-<a href="#home">Home</a>
-<a href="#create">Create Post</a>
-<a href="#about">About</a>
-</nav>
+<main>
 
-<main id="home">
-<section class="card" id="create">
-<h2>What's happening?</h2>
-<textarea id="postText" placeholder="Share something with the community..."></textarea>
-<br><br>
+<section class="card" id="signup">
+<h2>Create Your Account</h2>
+<p>Join the FRIENDLY MEET community.</p>
+<input id="newName" placeholder="Your full name">
+<input id="newEmail" type="email" placeholder="Your email address">
+<input id="newPassword" type="password" placeholder="Create a password">
+<button onclick="register()">Sign Up</button>
+<p class="switch" onclick="showLogin()">Already have an account? Log in</p>
+</section>
+
+<section class="card hidden" id="login">
+<h2>Welcome Back!</h2>
+<input id="loginEmail" type="email" placeholder="Your email address">
+<input id="loginPassword" type="password" placeholder="Your password">
+<button onclick="login()">Log In</button>
+<p class="switch" onclick="showSignup()">Create a new account</p>
+</section>
+
+<section class="hidden" id="community">
+<div class="card">
+<h2 id="welcome"></h2>
+<p>You're part of FRIENDLY MEET!</p>
+<button onclick="logout()">Log Out</button>
+</div>
+
+<div class="card">
+<h2>Share a Moment</h2>
+<textarea id="postText" placeholder="What's happening?"></textarea>
 <button onclick="addPost()">Share Post</button>
-</section>
+</div>
 
+<div class="card">
 <h2>Community Feed</h2>
-<div id="feed"></div>
-
-<section class="card" id="about">
-<h2>About FRIENDLY MEET</h2>
-<p>A place to meet people, make friends and share your moments.</p>
-<p>We're building a friendly community, one connection at a time.</p>
+<div id="feed">Welcome to our community!</div>
+</div>
 </section>
+
 </main>
 
-<footer style="text-align:center;padding:25px;color:#777">
-© 2026 FRIENDLY MEET. Made for friendship.
-</footer>
-
 <script>
-let posts = JSON.parse(localStorage.getItem("friendlyPosts") || "[]");
-
-function showPosts() {
-  const feed = document.getElementById("feed");
-  feed.innerHTML = "";
-
-  if (posts.length === 0) {
-    feed.innerHTML = '<div class="card">Welcome! Be the first to share something.</div>';
-  }
-
-  posts.forEach((post, index) => {
-    const card = document.createElement("div");
-    card.className = "card post";
-
-    const message = document.createElement("p");
-    message.textContent = post.text;
-
-    const date = document.createElement("small");
-    date.textContent = post.date;
-
-    const like = document.createElement("button");
-    like.textContent = "♥ Like (" + post.likes + ")";
-    like.onclick = () => {
-      posts[index].likes++;
-      savePosts();
-    };
-
-    card.appendChild(date);
-    card.appendChild(message);
-    card.appendChild(like);
-    feed.appendChild(card);
-  });
+function showLogin(){
+document.getElementById("signup").classList.add("hidden");
+document.getElementById("login").classList.remove("hidden");
 }
 
-function addPost() {
-  const box = document.getElementById("postText");
-  const text = box.value.trim();
-
-  if (!text) {
-    alert("Write something first!");
-    return;
-  }
-
-  posts.unshift({
-    text: text,
-    likes: 0,
-    date: new Date().toLocaleString()
-  });
-
-  box.value = "";
-  savePosts();
+function showSignup(){
+document.getElementById("login").classList.add("hidden");
+document.getElementById("signup").classList.remove("hidden");
 }
 
-function savePosts() {
-  localStorage.setItem("friendlyPosts", JSON.stringify(posts));
-  showPosts();
+function register(){
+const name=document.getElementById("newName").value.trim();
+const email=document.getElementById("newEmail").value.trim();
+const password=document.getElementById("newPassword").value;
+
+if(!name||!email||!password){
+alert("Please fill in all the fields.");
+return;
 }
 
-showPosts();
+alert("Registration screen working! Real account creation will be connected next.");
+}
+
+function login(){
+alert("Login screen working! Secure account login will be connected next.");
+}
+
+function logout(){
+document.getElementById("community").classList.add("hidden");
+document.getElementById("signup").classList.remove("hidden");
+}
+
+function addPost(){
+const text=document.getElementById("postText").value.trim();
+if(!text){alert("Write something first!");return;}
+
+const post=document.createElement("p");
+post.className="post";
+post.textContent=text;
+document.getElementById("feed").prepend(post);
+document.getElementById("postText").value="";
+}
 </script>
 
 </body>
