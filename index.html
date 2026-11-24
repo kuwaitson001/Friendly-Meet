@@ -43,6 +43,70 @@ button.secondary{background:#555}
 .member-profile-modal{position:fixed;inset:0;background:#0009;display:flex;align-items:center;justify-content:center;padding:15px;z-index:1000}
 .member-profile-card{background:white;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:22px;border-radius:14px}
 .member-profile-card .avatar{width:95px;height:95px}
+
+/* VIDEO FEED */
+.video-feed{
+display:flex;
+flex-direction:column;
+gap:18px;
+}
+.video-card{
+background:#111;
+color:white;
+border-radius:14px;
+overflow:hidden;
+padding:12px;
+}
+.video-card .author-row{margin-bottom:10px}
+.video-card .author-name{color:white}
+.video-card video{
+width:100%;
+max-height:620px;
+aspect-ratio:9/16;
+object-fit:contain;
+background:#000;
+border-radius:10px;
+display:block;
+}
+.video-caption{
+white-space:pre-wrap;
+overflow-wrap:anywhere;
+margin:12px 0;
+}
+.video-date{
+color:#ccc;
+font-size:12px;
+}
+.video-card .comment-item{
+background:#292929;
+color:white;
+}
+.video-card .comment-input{
+background:white;
+color:#222;
+}
+.video-card .comment-heading{color:white}
+.video-card .like-button{
+background:#fff;
+color:#2457d6;
+}
+.video-card .like-button.liked{
+background:#2457d6;
+color:white;
+}
+.video-actions{
+display:flex;
+align-items:center;
+flex-wrap:wrap;
+gap:5px;
+}
+.video-feed-empty{
+background:#f7f8fc;
+padding:20px;
+border-radius:10px;
+text-align:center;
+color:#555;
+}
 </style>
 </head>
 
@@ -150,6 +214,26 @@ button.secondary{background:#555}
 <button id="logout" class="secondary">Log Out</button>
 </section>
 
+<!-- VIDEO UPLOAD -->
+<section class="card hidden" id="videoUploadCard">
+<h2>Share a Video</h2>
+<p class="section-note">Upload a funny video or any moment you want to share with the community.</p>
+<input id="videoFile" type="file" accept="video/mp4,video/webm,video/quicktime,video/*">
+<textarea id="videoCaption" maxlength="500" placeholder="Write a caption for your video..."></textarea>
+<button id="uploadVideo">Upload Video</button>
+<p class="section-note">Maximum upload size: 50 MB. Your video may use mobile data when played.</p>
+</section>
+
+<!-- VIDEO FEED -->
+<section class="card">
+<h2>Funny Videos & Moments</h2>
+<p class="section-note">Scroll down to discover videos shared by members.</p>
+<div id="videoFeed" class="video-feed">
+<div class="video-feed-empty">Loading videos...</div>
+</div>
+</section>
+
+<!-- COMMUNITY POSTS -->
 <section class="card">
 <h2>Community Feed</h2>
 <div id="postArea" class="hidden">
@@ -177,6 +261,7 @@ const accountCard = document.getElementById("accountCard");
 const postArea = document.getElementById("postArea");
 const postsBox = document.getElementById("posts");
 const avatarPreview = document.getElementById("avatarPreview");
+const videoFeed = document.getElementById("videoFeed");
 
 let currentUser = null;
 let currentProfile = {};
@@ -220,17 +305,13 @@ let hasDetails = false;
 for(const [label,value] of fields){
 if(!value) continue;
 hasDetails = true;
-
 const line = document.createElement("div");
 line.className = "profile-line";
-
 const heading = document.createElement("span");
 heading.className = "profile-label";
 heading.textContent = label + ": ";
-
 const content = document.createElement("span");
 content.textContent = value;
-
 line.append(heading,content);
 box.append(line);
 }
@@ -246,7 +327,6 @@ if(!userId) return;
 
 const modal = document.getElementById("memberProfileModal");
 const content = document.getElementById("memberProfileContent");
-
 modal.classList.remove("hidden");
 content.textContent = "Loading member profile...";
 
@@ -260,7 +340,6 @@ if(error){
 content.textContent = "Could not load profile: " + error.message;
 return;
 }
-
 if(!profile){
 content.textContent = "This member's profile could not be found.";
 return;
@@ -271,10 +350,7 @@ content.replaceChildren();
 const avatar = document.createElement("img");
 avatar.className = "avatar";
 avatar.alt = "Member profile picture";
-
-if(profile.avatar_url){
-avatar.src = profile.avatar_url;
-}
+if(profile.avatar_url) avatar.src = profile.avatar_url;
 
 const name = document.createElement("h2");
 name.textContent = profile.display_name || "FRIENDLY MEET member";
@@ -298,17 +374,14 @@ const fields = [
 ];
 
 let found = false;
-
 for(const [label,value] of fields){
 if(!value) continue;
 found = true;
-
 const line = document.createElement("div");
 line.className = "profile-line";
 line.textContent = label + ": " + value;
 content.append(line);
 }
-
 if(!found){
 const message = document.createElement("p");
 message.textContent = "This member hasn't added profile details yet.";
@@ -383,6 +456,7 @@ currentUser = data.session?.user || null;
 authCard.classList.toggle("hidden",!!currentUser);
 accountCard.classList.toggle("hidden",!currentUser);
 postArea.classList.toggle("hidden",!currentUser);
+document.getElementById("videoUploadCard").classList.toggle("hidden",!currentUser);
 
 if(currentUser){
 const name = currentUser.user_metadata?.display_name || currentUser.email;
@@ -392,10 +466,11 @@ showStatus("You're logged in to FRIENDLY MEET.");
 }else{
 avatarPreview.classList.add("hidden");
 document.getElementById("profileForm").classList.add("hidden");
-showStatus("Welcome! Sign up or log in to share a post.");
+showStatus("Welcome! Sign up or log in to share a post or video.");
 }
 
 await loadPosts();
+await loadVideos();
 }
 
 /* EDIT PROFILE */
@@ -476,27 +551,24 @@ document.getElementById("profileForm").classList.add("hidden");
 
 showStatus("Your profile has been updated successfully!");
 await loadPosts();
+await loadVideos();
 });
 
-/* LIKE AND UNLIKE */
+/* POST LIKES */
 async function toggleLike(postId,alreadyLiked){
 if(!currentUser){
 showStatus("Please log in to like posts.");
 return;
 }
 
-showStatus(alreadyLiked ? "Removing your Like..." : "Adding your Like...");
-
 let result;
-
 if(alreadyLiked){
-result = await client.from("likes")
-.delete()
-.eq("post_id",postId)
-.eq("user_id",currentUser.id);
+result = await client.from("likes").delete()
+.eq("post_id",postId).eq("user_id",currentUser.id);
 }else{
-result = await client.from("likes")
-.insert({post_id:postId,user_id:currentUser.id});
+result = await client.from("likes").insert({
+post_id:postId,user_id:currentUser.id
+});
 }
 
 if(result.error){
@@ -508,7 +580,7 @@ showStatus(alreadyLiked ? "Like removed." : "You liked this post!");
 await loadPosts();
 }
 
-/* COMMENTS */
+/* POST COMMENTS */
 async function submitComment(postId,input){
 if(!currentUser){
 showStatus("Please log in to comment.");
@@ -516,18 +588,13 @@ return;
 }
 
 const content = input.value.trim();
-
 if(!content){
 showStatus("Write a comment first.");
 return;
 }
 
-showStatus("Posting your comment...");
-
 const {error} = await client.from("comments").insert({
-post_id:postId,
-user_id:currentUser.id,
-content:content
+post_id:postId,user_id:currentUser.id,content
 });
 
 if(error){
@@ -563,19 +630,18 @@ return;
 const postIds = data.map(post=>post.id);
 const userIds = [...new Set(data.map(post=>post.user_id).filter(Boolean))];
 
-const {data:likes,error:likesError} = await client
-.from("likes")
-.select("post_id,user_id")
-.in("post_id",postIds);
+let likes = [];
+let comments = [];
 
+if(currentUser){
+const {data:likeData,error:likesError} = await client
+.from("likes").select("post_id,user_id").in("post_id",postIds);
 if(likesError){
 postsBox.textContent = "Could not load likes: " + likesError.message;
 return;
 }
+likes = likeData || [];
 
-let comments = [];
-
-if(currentUser){
 const {data:commentData,error:commentsError} = await client
 .from("comments")
 .select("id,post_id,user_id,content,created_at")
@@ -586,13 +652,11 @@ if(commentsError){
 postsBox.textContent = "Could not load comments: " + commentsError.message;
 return;
 }
-
 comments = commentData || [];
 }
 
 const allUserIds = [...new Set([
-...userIds,
-...comments.map(comment=>comment.user_id)
+...userIds,...comments.map(comment=>comment.user_id)
 ].filter(Boolean))];
 
 const profileMap = new Map();
@@ -607,7 +671,6 @@ if(profileError){
 postsBox.textContent = "Could not load member profiles: " + profileError.message;
 return;
 }
-
 for(const profile of (profiles || [])){
 profileMap.set(profile.id,profile);
 }
@@ -617,7 +680,7 @@ const likeCounts = new Map();
 const likedPosts = new Set();
 const commentMap = new Map();
 
-for(const like of (likes || [])){
+for(const like of likes){
 likeCounts.set(like.post_id,(likeCounts.get(like.post_id)||0)+1);
 if(currentUser && like.user_id === currentUser.id){
 likedPosts.add(like.post_id);
@@ -642,14 +705,9 @@ authorRow.className = "author-row";
 const avatar = document.createElement("img");
 avatar.className = "avatar profile-clickable";
 avatar.alt = "Profile picture";
-
-if(profile?.avatar_url){
-avatar.src = profile.avatar_url;
-}else{
-avatar.src = "data:image/svg+xml," + encodeURIComponent(
+avatar.src = profile?.avatar_url || "data:image/svg+xml," + encodeURIComponent(
 '<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46"><rect width="100%" height="100%" fill="#e5e7eb"/><circle cx="23" cy="17" r="9" fill="#9ca3af"/><path d="M7 45c1-12 8-17 16-17s15 5 16 17" fill="#9ca3af"/></svg>'
 );
-}
 
 const authorName = document.createElement("span");
 authorName.className = "author-name profile-clickable";
@@ -657,7 +715,6 @@ authorName.textContent = profile?.display_name || (post.user_id === currentUser?
 
 avatar.addEventListener("click",()=>openMemberProfile(post.user_id));
 authorName.addEventListener("click",()=>openMemberProfile(post.user_id));
-
 authorRow.append(avatar,authorName);
 
 const content = document.createElement("p");
@@ -673,7 +730,6 @@ likeButton.textContent = alreadyLiked ? "Unlike" : "Like";
 
 const likeCount = document.createElement("span");
 likeCount.textContent = " " + (likeCounts.get(post.id)||0) + " Likes";
-
 likeButton.addEventListener("click",()=>toggleLike(post.id,alreadyLiked));
 
 article.append(authorRow,content,date,document.createElement("br"),likeButton,likeCount);
@@ -683,14 +739,12 @@ commentArea.className = "comment-area";
 
 const commentHeading = document.createElement("div");
 commentHeading.className = "comment-heading";
-
 const postComments = commentMap.get(post.id) || [];
 commentHeading.textContent = "Comments (" + postComments.length + ")";
 commentArea.append(commentHeading);
 
 for(const comment of postComments){
 const commentProfile = profileMap.get(comment.user_id);
-
 const commentItem = document.createElement("div");
 commentItem.className = "comment-item";
 
@@ -718,7 +772,6 @@ commentInput.placeholder = "Write a comment...";
 const commentButton = document.createElement("button");
 commentButton.textContent = "Post Comment";
 commentButton.addEventListener("click",()=>submitComment(post.id,commentInput));
-
 commentArea.append(commentInput,commentButton);
 }else{
 const loginMessage = document.createElement("small");
@@ -728,6 +781,340 @@ commentArea.append(loginMessage);
 
 article.append(commentArea);
 postsBox.append(article);
+}
+}
+
+/* UPLOAD VIDEO */
+document.getElementById("uploadVideo").addEventListener("click",async()=>{
+if(!currentUser){
+showStatus("Please log in first.");
+return;
+}
+
+const file = document.getElementById("videoFile").files[0];
+const caption = getValue("videoCaption");
+
+if(!file){
+showStatus("Choose a video first.");
+return;
+}
+
+if(!file.type.startsWith("video/")){
+showStatus("Please choose a valid video file.");
+return;
+}
+
+if(file.size > 50 * 1024 * 1024){
+showStatus("Your video is too large. Maximum size is 50 MB.");
+return;
+}
+
+const button = document.getElementById("uploadVideo");
+button.disabled = true;
+button.textContent = "Uploading...";
+showStatus("Uploading your video. Please wait...");
+
+const extension = file.name.split(".").pop().toLowerCase();
+const filePath = currentUser.id + "/" + Date.now() + "." + extension;
+
+const {error:uploadError} = await client.storage
+.from("videos")
+.upload(filePath,file,{
+upsert:false,
+contentType:file.type
+});
+
+if(uploadError){
+showStatus("Video upload failed: " + uploadError.message);
+button.disabled = false;
+button.textContent = "Upload Video";
+return;
+}
+
+const {data:urlData} = client.storage.from("videos").getPublicUrl(filePath);
+const videoUrl = urlData.publicUrl;
+
+const {error:recordError} = await client.from("videos").insert({
+user_id:currentUser.id,
+video_url:videoUrl,
+caption:caption
+});
+
+if(recordError){
+showStatus("Video uploaded, but feed saving failed: " + recordError.message);
+button.disabled = false;
+button.textContent = "Upload Video";
+return;
+}
+
+document.getElementById("videoFile").value = "";
+document.getElementById("videoCaption").value = "";
+button.disabled = false;
+button.textContent = "Upload Video";
+
+showStatus("Your video has been shared successfully!");
+await loadVideos();
+});
+
+/* VIDEO LIKES */
+async function toggleVideoLike(videoId,alreadyLiked){
+if(!currentUser){
+showStatus("Please log in to like videos.");
+return;
+}
+
+let result;
+
+if(alreadyLiked){
+result = await client.from("video_likes")
+.delete()
+.eq("video_id",videoId)
+.eq("user_id",currentUser.id);
+}else{
+result = await client.from("video_likes")
+.insert({video_id:videoId,user_id:currentUser.id});
+}
+
+if(result.error){
+showStatus("Video like error: " + result.error.message);
+return;
+}
+
+await loadVideos();
+}
+
+/* VIDEO COMMENTS */
+async function submitVideoComment(videoId,input){
+if(!currentUser){
+showStatus("Please log in to comment on videos.");
+return;
+}
+
+const content = input.value.trim();
+if(!content){
+showStatus("Write a comment first.");
+return;
+}
+
+const {error} = await client.from("video_comments").insert({
+video_id:videoId,
+user_id:currentUser.id,
+content:content
+});
+
+if(error){
+showStatus("Video comment error: " + error.message);
+return;
+}
+
+showStatus("Your video comment has been posted!");
+await loadVideos();
+}
+
+/* LOAD VIDEO FEED */
+async function loadVideos(){
+videoFeed.replaceChildren();
+
+const loading = document.createElement("div");
+loading.className = "video-feed-empty";
+loading.textContent = "Loading videos...";
+videoFeed.append(loading);
+
+const {data:videos,error} = await client
+.from("videos")
+.select("id,user_id,video_url,caption,created_at")
+.order("created_at",{ascending:false});
+
+if(error){
+videoFeed.textContent = "Could not load videos: " + error.message;
+return;
+}
+
+videoFeed.replaceChildren();
+
+if(!videos || videos.length === 0){
+const empty = document.createElement("div");
+empty.className = "video-feed-empty";
+empty.textContent = "No videos yet. Be the first member to upload a video!";
+videoFeed.append(empty);
+return;
+}
+
+const videoIds = videos.map(video=>video.id);
+const userIds = [...new Set(videos.map(video=>video.user_id).filter(Boolean))];
+
+let likes = [];
+let comments = [];
+
+if(currentUser){
+const {data:likeData,error:likeError} = await client
+.from("video_likes")
+.select("video_id,user_id")
+.in("video_id",videoIds);
+
+if(likeError){
+videoFeed.textContent = "Could not load video likes: " + likeError.message;
+return;
+}
+likes = likeData || [];
+
+const {data:commentData,error:commentError} = await client
+.from("video_comments")
+.select("id,video_id,user_id,content,created_at")
+.in("video_id",videoIds)
+.order("created_at",{ascending:true});
+
+if(commentError){
+videoFeed.textContent = "Could not load video comments: " + commentError.message;
+return;
+}
+comments = commentData || [];
+}
+
+const allUserIds = [...new Set([
+...userIds,
+...comments.map(comment=>comment.user_id)
+].filter(Boolean))];
+
+const profileMap = new Map();
+
+if(allUserIds.length){
+const {data:profiles,error:profileError} = await client
+.from("profiles")
+.select("id,display_name,avatar_url")
+.in("id",allUserIds);
+
+if(profileError){
+videoFeed.textContent = "Could not load video member profiles: " + profileError.message;
+return;
+}
+
+for(const profile of (profiles || [])){
+profileMap.set(profile.id,profile);
+}
+}
+
+const likeCounts = new Map();
+const likedVideos = new Set();
+const commentMap = new Map();
+
+for(const like of likes){
+likeCounts.set(like.video_id,(likeCounts.get(like.video_id)||0)+1);
+if(currentUser && like.user_id === currentUser.id){
+likedVideos.add(like.video_id);
+}
+}
+
+for(const comment of comments){
+if(!commentMap.has(comment.video_id)){
+commentMap.set(comment.video_id,[]);
+}
+commentMap.get(comment.video_id).push(comment);
+}
+
+for(const video of videos){
+const profile = profileMap.get(video.user_id);
+const card = document.createElement("article");
+card.className = "video-card";
+
+const authorRow = document.createElement("div");
+authorRow.className = "author-row";
+
+const avatar = document.createElement("img");
+avatar.className = "avatar profile-clickable";
+avatar.alt = "Member picture";
+if(profile?.avatar_url){
+avatar.src = profile.avatar_url;
+}
+
+const authorName = document.createElement("span");
+authorName.className = "author-name profile-clickable";
+authorName.textContent = profile?.display_name || "FRIENDLY MEET member";
+
+avatar.addEventListener("click",()=>openMemberProfile(video.user_id));
+authorName.addEventListener("click",()=>openMemberProfile(video.user_id));
+
+authorRow.append(avatar,authorName);
+
+const player = document.createElement("video");
+player.src = video.video_url;
+player.controls = true;
+player.playsInline = true;
+player.loop = true;
+player.preload = "metadata";
+
+const caption = document.createElement("p");
+caption.className = "video-caption";
+caption.textContent = video.caption || "";
+
+const date = document.createElement("div");
+date.className = "video-date";
+date.textContent = new Date(video.created_at).toLocaleString();
+
+const actions = document.createElement("div");
+actions.className = "video-actions";
+
+const alreadyLiked = likedVideos.has(video.id);
+const likeButton = document.createElement("button");
+likeButton.className = "like-button" + (alreadyLiked ? " liked" : "");
+likeButton.textContent = alreadyLiked ? "Unlike" : "Like";
+likeButton.addEventListener("click",()=>toggleVideoLike(video.id,alreadyLiked));
+
+const likeCount = document.createElement("span");
+likeCount.textContent = (likeCounts.get(video.id)||0) + " Likes";
+
+actions.append(likeButton,likeCount);
+
+card.append(authorRow,player,caption,date,actions);
+
+const commentArea = document.createElement("div");
+commentArea.className = "comment-area";
+
+const heading = document.createElement("div");
+heading.className = "comment-heading";
+const videoComments = commentMap.get(video.id) || [];
+heading.textContent = "Comments (" + videoComments.length + ")";
+commentArea.append(heading);
+
+for(const comment of videoComments){
+const commentProfile = profileMap.get(comment.user_id);
+const item = document.createElement("div");
+item.className = "comment-item";
+
+const name = document.createElement("div");
+name.className = "comment-name profile-clickable";
+name.textContent = commentProfile?.display_name || "FRIENDLY MEET member";
+name.addEventListener("click",()=>openMemberProfile(comment.user_id));
+
+const text = document.createElement("p");
+text.textContent = comment.content;
+
+const time = document.createElement("small");
+time.textContent = new Date(comment.created_at).toLocaleString();
+
+item.append(name,text,time);
+commentArea.append(item);
+}
+
+if(currentUser){
+const input = document.createElement("textarea");
+input.className = "comment-input";
+input.maxLength = 1000;
+input.placeholder = "Write a comment...";
+
+const send = document.createElement("button");
+send.textContent = "Post Comment";
+send.addEventListener("click",()=>submitVideoComment(video.id,input));
+
+commentArea.append(input,send);
+}else{
+const loginMessage = document.createElement("small");
+loginMessage.textContent = "Log in to like and comment on videos.";
+commentArea.append(loginMessage);
+}
+
+card.append(commentArea);
+videoFeed.append(card);
 }
 }
 
@@ -745,9 +1132,7 @@ return;
 showStatus("Creating your account...");
 
 const {data,error} = await client.auth.signUp({
-email,
-password,
-options:{data:{display_name:name}}
+email,password,options:{data:{display_name:name}}
 });
 
 if(error){
@@ -853,6 +1238,7 @@ showStatus("Your profile picture has been uploaded successfully!");
 
 await loadMyProfile();
 await loadPosts();
+await loadVideos();
 });
 
 /* SHARE POST */
@@ -872,8 +1258,7 @@ return;
 showStatus("Sharing your post...");
 
 const {error} = await client.from("posts").insert({
-user_id:currentUser.id,
-content
+user_id:currentUser.id,content
 });
 
 if(error){
