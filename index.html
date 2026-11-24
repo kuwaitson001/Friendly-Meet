@@ -25,6 +25,7 @@ button.secondary{background:#555}
 .post small{color:#777}
 #status{padding:10px;border-radius:7px;background:#eef2ff;margin-bottom:15px;white-space:pre-wrap}
 .hidden{display:none}
+#avatarPreview{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #2457d6}
 </style>
 </head>
 
@@ -41,30 +42,33 @@ button.secondary{background:#555}
 
 <section class="card" id="authCard">
 <h2>Create your account</h2>
-
 <input id="name" placeholder="Your display name">
 <input id="email" type="email" placeholder="Email address">
 <input id="password" type="password" placeholder="Password">
-
 <button id="signup">Sign Up</button>
 <button id="login" class="secondary">Log In</button>
-
 <p><small>Use the same email and password when logging in.</small></p>
 </section>
 
 <section class="card hidden" id="accountCard">
 <h2 id="welcome">Welcome!</h2>
+
+<div id="profileArea">
+<img id="avatarPreview" alt="Profile picture" class="hidden">
+<p><strong>Your profile picture</strong></p>
+<input id="avatarFile" type="file" accept="image/*">
+<button id="uploadAvatar">Upload Picture</button>
+</div>
+
 <button id="logout" class="secondary">Log Out</button>
 </section>
 
 <section class="card">
 <h2>Community Feed</h2>
-
 <div id="postArea" class="hidden">
 <textarea id="postText" maxlength="2000" placeholder="What's on your mind?"></textarea>
 <button id="publish">Share Post</button>
 </div>
-
 <div id="posts">Loading posts...</div>
 </section>
 
@@ -78,268 +82,275 @@ button.secondary{background:#555}
 <script type="module">
 
 const SUPABASE_URL = "https://odjhvzzgmzekhoicjtcs.supabase.co";
-
 const SUPABASE_KEY = "sb_publishable_yioRR30R3qZcDr8UzB-7MQ_KX_a8Ub2";
+
+const client = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
 const statusBox = document.getElementById("status");
 const authCard = document.getElementById("authCard");
 const accountCard = document.getElementById("accountCard");
 const postArea = document.getElementById("postArea");
 const postsBox = document.getElementById("posts");
+const avatarPreview = document.getElementById("avatarPreview");
+
+let currentUser = null;
 
 function showStatus(message) {
   statusBox.textContent = message;
 }
 
-if (SUPABASE_URL.includes("PASTE_") || SUPABASE_KEY.includes("PASTE_")) {
+async function loadAvatar() {
+  if (!currentUser) return;
 
-  showStatus("Please add your Supabase Project URL and Publishable Key in the code.");
+  const avatarUrl = currentUser.user_metadata?.avatar_url;
 
-} else {
+  if (avatarUrl) {
+    avatarPreview.src = avatarUrl;
+    avatarPreview.classList.remove("hidden");
+  } else {
+    avatarPreview.removeAttribute("src");
+    avatarPreview.classList.add("hidden");
+  }
+}
 
-  const client = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
+async function refreshAccount() {
+  const { data, error } = await client.auth.getSession();
 
-  let currentUser = null;
+  if (error) {
+    showStatus(error.message);
+    return;
+  }
 
-  async function refreshAccount() {
+  currentUser = data.session?.user || null;
 
-    const { data } = await client.auth.getSession();
+  authCard.classList.toggle("hidden", !!currentUser);
+  accountCard.classList.toggle("hidden", !currentUser);
+  postArea.classList.toggle("hidden", !currentUser);
 
-    currentUser = data.session?.user || null;
+  if (currentUser) {
+    const name =
+      currentUser.user_metadata?.display_name ||
+      currentUser.email;
 
-    authCard.classList.toggle("hidden", !!currentUser);
-    accountCard.classList.toggle("hidden", !currentUser);
-    postArea.classList.toggle("hidden", !currentUser);
+    document.getElementById("welcome").textContent =
+      "Welcome, " + name + "!";
 
-    if (currentUser) {
+    showStatus("You're logged in to FRIENDLY MEET.");
+    await loadAvatar();
+  } else {
+    showStatus("Welcome! Sign up or log in to share a post.");
+  }
 
-      const name =
-        currentUser.user_metadata?.display_name ||
-        currentUser.email;
+  await loadPosts();
+}
 
-      document.getElementById("welcome").textContent =
-        "Welcome, " + name + "!";
+async function loadPosts() {
+  postsBox.textContent = "Loading posts...";
 
-      showStatus("You're logged in to FRIENDLY MEET.");
+  const { data, error } = await client
+    .from("posts")
+    .select("id, user_id, content, created_at")
+    .order("created_at", { ascending: false });
 
-    } else {
+  if (error) {
+    postsBox.textContent = "Could not load posts: " + error.message;
+    return;
+  }
 
-      showStatus("Welcome! Sign up or log in to share a post.");
+  postsBox.replaceChildren();
 
+  if (!data || data.length === 0) {
+    postsBox.textContent =
+      "No posts yet. Be the first to share something!";
+    return;
+  }
+
+  for (const post of data) {
+    const article = document.createElement("article");
+    article.className = "post";
+
+    const author = document.createElement("strong");
+    author.textContent =
+      post.user_id === currentUser?.id
+        ? "You"
+        : "FRIENDLY MEET member";
+
+    const content = document.createElement("p");
+    content.textContent = post.content;
+
+    const date = document.createElement("small");
+    date.textContent =
+      new Date(post.created_at).toLocaleString();
+
+    article.append(author, content, date);
+    postsBox.append(article);
+  }
+}
+
+document.getElementById("signup").addEventListener("click", async () => {
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  if (!name || !email || password.length < 6) {
+    showStatus("Enter your name, a valid email and a password of at least 6 characters.");
+    return;
+  }
+
+  showStatus("Creating your account...");
+
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { display_name: name }
     }
+  });
 
+  if (error) {
+    showStatus(error.message);
+  } else if (data.session) {
+    showStatus("Account created successfully!");
+    await refreshAccount();
+  } else {
+    showStatus("Account created! Check your email and confirm your address before logging in.");
+  }
+});
+
+document.getElementById("login").addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  if (!email || !password) {
+    showStatus("Enter your email and password first.");
+    return;
+  }
+
+  showStatus("Logging in...");
+
+  const { error } = await client.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    showStatus(error.message);
+  } else {
+    await refreshAccount();
+  }
+});
+
+document.getElementById("logout").addEventListener("click", async () => {
+  const { error } = await client.auth.signOut();
+
+  if (error) {
+    showStatus(error.message);
+  } else {
+    await refreshAccount();
+  }
+});
+
+document.getElementById("uploadAvatar").addEventListener("click", async () => {
+  if (!currentUser) {
+    showStatus("Please log in first.");
+    return;
+  }
+
+  const file = document.getElementById("avatarFile").files[0];
+
+  if (!file) {
+    showStatus("Please choose a picture first.");
+    return;
+  }
+
+  if (!file.type.startsWith("image/")) {
+    showStatus("Please select an image file.");
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showStatus("Your picture must be smaller than 5 MB.");
+    return;
+  }
+
+  showStatus("Uploading your profile picture...");
+
+  const extension = file.name.split(".").pop().toLowerCase();
+  const filePath = currentUser.id + "/avatar." + extension;
+
+  const { error: uploadError } = await client.storage
+    .from("avatars")
+    .upload(filePath, file, {
+      upsert: true,
+      contentType: file.type
+    });
+
+  if (uploadError) {
+    showStatus("Upload failed: " + uploadError.message);
+    return;
+  }
+
+  const { data } = client.storage
+    .from("avatars")
+    .getPublicUrl(filePath);
+
+  const avatarUrl = data.publicUrl + "?updated=" + Date.now();
+
+  const { error: updateError } = await client.auth.updateUser({
+    data: { avatar_url: avatarUrl }
+  });
+
+  if (updateError) {
+    showStatus("Picture uploaded, but profile update failed: " + updateError.message);
+    return;
+  }
+
+  avatarPreview.src = avatarUrl;
+  avatarPreview.classList.remove("hidden");
+
+  const { data: sessionData } = await client.auth.getSession();
+  currentUser = sessionData.session?.user || currentUser;
+
+  showStatus("Your profile picture has been uploaded successfully!");
+});
+
+document.getElementById("publish").addEventListener("click", async () => {
+  const content = document.getElementById("postText").value.trim();
+
+  if (!currentUser) {
+    showStatus("Please log in first.");
+    return;
+  }
+
+  if (!content) {
+    showStatus("Write something before sharing.");
+    return;
+  }
+
+  showStatus("Sharing your post...");
+
+  const { error } = await client.from("posts").insert({
+    user_id: currentUser.id,
+    content: content
+  });
+
+  if (error) {
+    showStatus(error.message);
+  } else {
+    document.getElementById("postText").value = "";
+    showStatus("Your post has been shared!");
     await loadPosts();
   }
+});
 
-  async function loadPosts() {
+client.auth.onAuthStateChange(() => {
+  setTimeout(refreshAccount, 0);
+});
 
-    postsBox.textContent = "Loading posts...";
-
-    const { data, error } = await client
-      .from("posts")
-      .select("id, user_id, content, created_at")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-
-      postsBox.textContent =
-        "Could not load posts: " + error.message;
-
-      return;
-    }
-
-    postsBox.replaceChildren();
-
-    if (!data || data.length === 0) {
-
-      postsBox.textContent =
-        "No posts yet. Be the first to share something!";
-
-      return;
-    }
-
-    for (const post of data) {
-
-      const article = document.createElement("article");
-      article.className = "post";
-
-      const author = document.createElement("strong");
-
-      author.textContent =
-        post.user_id === currentUser?.id
-          ? "You"
-          : "FRIENDLY MEET member";
-
-      const content = document.createElement("p");
-      content.textContent = post.content;
-
-      const date = document.createElement("small");
-
-      date.textContent =
-        new Date(post.created_at).toLocaleString();
-
-      article.append(author, content, date);
-
-      postsBox.append(article);
-    }
-  }
-
-  document.getElementById("signup").addEventListener("click", async () => {
-
-    const name =
-      document.getElementById("name").value.trim();
-
-    const email =
-      document.getElementById("email").value.trim();
-
-    const password =
-      document.getElementById("password").value;
-
-    if (!name || !email || password.length < 6) {
-
-      showStatus(
-        "Enter your name, a valid email and a password of at least 6 characters."
-      );
-
-      return;
-    }
-
-    showStatus("Creating your account...");
-
-    const { data, error } =
-      await client.auth.signUp({
-
-        email,
-        password,
-
-        options: {
-          data: {
-            display_name: name
-          }
-        }
-
-      });
-
-    if (error) {
-
-      showStatus(error.message);
-
-    } else if (data.session) {
-
-      showStatus("Account created successfully!");
-
-      await refreshAccount();
-
-    } else {
-
-      showStatus(
-        "Account created! Check your email and confirm your address before logging in."
-      );
-    }
-  });
-
-  document.getElementById("login").addEventListener("click", async () => {
-
-    const email =
-      document.getElementById("email").value.trim();
-
-    const password =
-      document.getElementById("password").value;
-
-    if (!email || !password) {
-
-      showStatus("Enter your email and password first.");
-
-      return;
-    }
-
-    showStatus("Logging in...");
-
-    const { error } =
-      await client.auth.signInWithPassword({
-        email,
-        password
-      });
-
-    if (error) {
-
-      showStatus(error.message);
-
-    } else {
-
-      await refreshAccount();
-    }
-  });
-
-  document.getElementById("logout").addEventListener("click", async () => {
-
-    const { error } =
-      await client.auth.signOut();
-
-    if (error) {
-
-      showStatus(error.message);
-
-    } else {
-
-      await refreshAccount();
-    }
-  });
-
-  document.getElementById("publish").addEventListener("click", async () => {
-
-    const content =
-      document.getElementById("postText").value.trim();
-
-    if (!currentUser) {
-
-      showStatus("Please log in first.");
-
-      return;
-    }
-
-    if (!content) {
-
-      showStatus("Write something before sharing.");
-
-      return;
-    }
-
-    showStatus("Sharing your post...");
-
-    const { error } =
-      await client.from("posts").insert({
-
-        user_id: currentUser.id,
-        content: content
-
-      });
-
-    if (error) {
-
-      showStatus(error.message);
-
-    } else {
-
-      document.getElementById("postText").value = "";
-
-      showStatus("Your post has been shared!");
-
-      await loadPosts();
-    }
-  });
-
-  client.auth.onAuthStateChange(() => {
-
-    setTimeout(refreshAccount, 0);
-
-  });
-
-  refreshAccount();
-}
+refreshAccount();
 
 </script>
 
