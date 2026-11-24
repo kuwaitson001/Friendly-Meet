@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FRIENDLY MEET</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,sans-serif;background:#f1f4f8;color:#222}
@@ -25,22 +27,28 @@ button.secondary{background:#555}
 .hidden{display:none}
 </style>
 </head>
+
 <body>
+
 <header>
 <h1>FRIENDLY MEET</h1>
 <p>Meet people. Share moments. Build friendships.</p>
 </header>
 
 <main>
+
 <div id="status">Welcome to FRIENDLY MEET!</div>
 
 <section class="card" id="authCard">
 <h2>Create your account</h2>
+
 <input id="name" placeholder="Your display name">
 <input id="email" type="email" placeholder="Email address">
 <input id="password" type="password" placeholder="Password">
+
 <button id="signup">Sign Up</button>
 <button id="login" class="secondary">Log In</button>
+
 <p><small>Use the same email and password when logging in.</small></p>
 </section>
 
@@ -51,10 +59,12 @@ button.secondary{background:#555}
 
 <section class="card">
 <h2>Community Feed</h2>
+
 <div id="postArea" class="hidden">
 <textarea id="postText" maxlength="2000" placeholder="What's on your mind?"></textarea>
 <button id="publish">Share Post</button>
 </div>
+
 <div id="posts">Loading posts...</div>
 </section>
 
@@ -62,9 +72,15 @@ button.secondary{background:#555}
 <h2>About FRIENDLY MEET</h2>
 <p>A place to meet people, share ideas and build meaningful friendships.</p>
 </section>
+
 </main>
 
+<script type="module">
+
 const SUPABASE_URL = "https://odjhvzzgmzekhoicjtcs.supabase.co";
+
+const SUPABASE_KEY = "sb_publishable_yioRR30R3qZcDr8UzB-7MQ_KX_a8Ub2";
+
 const statusBox = document.getElementById("status");
 const authCard = document.getElementById("authCard");
 const accountCard = document.getElementById("accountCard");
@@ -76,20 +92,22 @@ function showStatus(message) {
 }
 
 if (SUPABASE_URL.includes("PASTE_") || SUPABASE_KEY.includes("PASTE_")) {
+
   showStatus("Please add your Supabase Project URL and Publishable Key in the code.");
+
 } else {
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const client = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
   let currentUser = null;
 
-  function escapeHTML(value) {
-    return String(value).replace(/[&<>"']/g, char => ({
-      "&":"&amp;", "<":"&lt;", ">":"&gt;",
-      '"':"&quot;", "'":"&#39;"
-    }[char]));
-  }
-
   async function refreshAccount() {
+
     const { data } = await client.auth.getSession();
+
     currentUser = data.session?.user || null;
 
     authCard.classList.toggle("hidden", !!currentUser);
@@ -97,139 +115,233 @@ if (SUPABASE_URL.includes("PASTE_") || SUPABASE_KEY.includes("PASTE_")) {
     postArea.classList.toggle("hidden", !currentUser);
 
     if (currentUser) {
-      const name = currentUser.user_metadata?.display_name || currentUser.email;
-      document.getElementById("welcome").textContent = "Welcome, " + name + "!";
+
+      const name =
+        currentUser.user_metadata?.display_name ||
+        currentUser.email;
+
+      document.getElementById("welcome").textContent =
+        "Welcome, " + name + "!";
+
       showStatus("You're logged in to FRIENDLY MEET.");
+
     } else {
+
       showStatus("Welcome! Sign up or log in to share a post.");
+
     }
+
     await loadPosts();
   }
 
   async function loadPosts() {
+
     postsBox.textContent = "Loading posts...";
+
     const { data, error } = await client
       .from("posts")
       .select("id, user_id, content, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
-      postsBox.textContent = "Could not load posts: " + error.message;
+
+      postsBox.textContent =
+        "Could not load posts: " + error.message;
+
       return;
     }
 
     postsBox.replaceChildren();
 
     if (!data || data.length === 0) {
-      postsBox.textContent = "No posts yet. Be the first to share something!";
+
+      postsBox.textContent =
+        "No posts yet. Be the first to share something!";
+
       return;
     }
 
     for (const post of data) {
+
       const article = document.createElement("article");
       article.className = "post";
 
       const author = document.createElement("strong");
-      author.textContent = post.user_id === currentUser?.id
-        ? "You"
-        : "FRIENDLY MEET member";
+
+      author.textContent =
+        post.user_id === currentUser?.id
+          ? "You"
+          : "FRIENDLY MEET member";
 
       const content = document.createElement("p");
       content.textContent = post.content;
 
       const date = document.createElement("small");
-      date.textContent = new Date(post.created_at).toLocaleString();
+
+      date.textContent =
+        new Date(post.created_at).toLocaleString();
 
       article.append(author, content, date);
+
       postsBox.append(article);
     }
   }
 
   document.getElementById("signup").addEventListener("click", async () => {
-    const name = document.getElementById("name").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
+
+    const name =
+      document.getElementById("name").value.trim();
+
+    const email =
+      document.getElementById("email").value.trim();
+
+    const password =
+      document.getElementById("password").value;
 
     if (!name || !email || password.length < 6) {
-      showStatus("Enter your name, a valid email and a password of at least 6 characters.");
+
+      showStatus(
+        "Enter your name, a valid email and a password of at least 6 characters."
+      );
+
       return;
     }
 
     showStatus("Creating your account...");
-    const { data, error } = await client.auth.signUp({
-      email,
-      password,
-      options: { data: { display_name: name } }
-    });
+
+    const { data, error } =
+      await client.auth.signUp({
+
+        email,
+        password,
+
+        options: {
+          data: {
+            display_name: name
+          }
+        }
+
+      });
 
     if (error) {
+
       showStatus(error.message);
+
     } else if (data.session) {
+
       showStatus("Account created successfully!");
+
       await refreshAccount();
+
     } else {
-      showStatus("Account created! Check your email and confirm your address before logging in.");
+
+      showStatus(
+        "Account created! Check your email and confirm your address before logging in."
+      );
     }
   });
 
   document.getElementById("login").addEventListener("click", async () => {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
+
+    const email =
+      document.getElementById("email").value.trim();
+
+    const password =
+      document.getElementById("password").value;
 
     if (!email || !password) {
+
       showStatus("Enter your email and password first.");
+
       return;
     }
 
     showStatus("Logging in...");
-    const { error } = await client.auth.signInWithPassword({ email, password });
+
+    const { error } =
+      await client.auth.signInWithPassword({
+        email,
+        password
+      });
 
     if (error) {
+
       showStatus(error.message);
+
     } else {
+
       await refreshAccount();
     }
   });
 
   document.getElementById("logout").addEventListener("click", async () => {
-    const { error } = await client.auth.signOut();
-    if (error) showStatus(error.message);
-    else await refreshAccount();
+
+    const { error } =
+      await client.auth.signOut();
+
+    if (error) {
+
+      showStatus(error.message);
+
+    } else {
+
+      await refreshAccount();
+    }
   });
 
   document.getElementById("publish").addEventListener("click", async () => {
-    const content = document.getElementById("postText").value.trim();
+
+    const content =
+      document.getElementById("postText").value.trim();
 
     if (!currentUser) {
+
       showStatus("Please log in first.");
+
       return;
     }
+
     if (!content) {
+
       showStatus("Write something before sharing.");
+
       return;
     }
 
     showStatus("Sharing your post...");
-    const { error } = await client.from("posts").insert({
-      user_id: currentUser.id,
-      content
-    });
+
+    const { error } =
+      await client.from("posts").insert({
+
+        user_id: currentUser.id,
+        content: content
+
+      });
 
     if (error) {
+
       showStatus(error.message);
+
     } else {
+
       document.getElementById("postText").value = "";
+
       showStatus("Your post has been shared!");
+
       await loadPosts();
     }
   });
 
   client.auth.onAuthStateChange(() => {
+
     setTimeout(refreshAccount, 0);
+
   });
 
   refreshAccount();
 }
+
 </script>
+
 </body>
 </html>
