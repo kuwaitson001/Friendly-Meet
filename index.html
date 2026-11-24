@@ -39,6 +39,32 @@ button.secondary{background:#555}
 #status{padding:10px;border-radius:7px;background:#eef2ff;margin-bottom:15px;white-space:pre-wrap}
 .section-note{color:#666;font-size:13px}
 </style>
+.member-profile-modal{
+  position:fixed;
+  inset:0;
+  background:#0009;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:15px;
+  z-index:1000;
+}
+.member-profile-card{
+  background:white;
+  width:100%;
+  max-width:500px;
+  max-height:85vh;
+  overflow-y:auto;
+  padding:22px;
+  border-radius:14px;
+}
+.member-profile-card .avatar{
+  width:95px;
+  height:95px;
+}
+.profile-clickable{
+  cursor:pointer;
+}
 </head>
 
 <body>
@@ -49,7 +75,12 @@ button.secondary{background:#555}
 </header>
 
 <main>
-
+<div id="memberProfileModal" class="member-profile-modal hidden">
+  <div class="member-profile-card">
+    <button id="closeMemberProfile" class="secondary">Close</button>
+    <div id="memberProfileContent">Loading profile...</div>
+  </div>
+</div>
 <div id="status">Welcome to FRIENDLY MEET!</div>
 
 <section class="card" id="authCard">
@@ -202,7 +233,88 @@ document.getElementById(id).value = value || "";
 }
 
 function displayProfile(profile){
+async function openMemberProfile(userId){
 
+  if(!userId) return;
+
+  const modal = document.getElementById("memberProfileModal");
+  const content = document.getElementById("memberProfileContent");
+
+  modal.classList.remove("hidden");
+  content.textContent = "Loading member profile...";
+
+  const {data:profile,error} = await client
+    .from("profiles")
+    .select("*")
+    .eq("id",userId)
+    .maybeSingle();
+
+  if(error){
+    content.textContent = "Could not load profile: " + error.message;
+    return;
+  }
+
+  if(!profile){
+    content.textContent = "This member's profile could not be found.";
+    return;
+  }
+
+  content.replaceChildren();
+
+  const avatar = document.createElement("img");
+  avatar.className = "avatar";
+  avatar.alt = "Member profile picture";
+
+  if(profile.avatar_url){
+    avatar.src = profile.avatar_url;
+  }
+
+  const name = document.createElement("h2");
+  name.textContent = profile.display_name || "FRIENDLY MEET member";
+
+  content.append(avatar,name);
+
+  const fields = [
+    ["About me",profile.bio],
+    ["Country",profile.country],
+    ["State / Region",profile.state],
+    ["City",profile.city],
+    ["Hometown",profile.hometown],
+    ["Birthday",profile.birthday],
+    ["Job",profile.job_title],
+    ["Workplace",profile.workplace],
+    ["School",profile.school],
+    ["Education",profile.education],
+    ["Relationship status",profile.relationship_status],
+    ["Hobbies",profile.hobbies],
+    ["Interests",profile.interests],
+    ["Favourite things",profile.favorite_things]
+  ];
+
+  let found = false;
+
+  for(const [label,value] of fields){
+    if(!value) continue;
+
+    found = true;
+
+    const line = document.createElement("div");
+    line.className = "profile-line";
+    line.textContent = label + ": " + value;
+
+    content.append(line);
+  }
+
+  if(!found){
+    const message = document.createElement("p");
+    message.textContent = "This member hasn't added profile details yet.";
+    content.append(message);
+  }
+}
+
+document.getElementById("closeMemberProfile").addEventListener("click",()=>{
+  document.getElementById("memberProfileModal").classList.add("hidden");
+});
 const box = document.getElementById("profileDetails");
 box.replaceChildren();
 
@@ -623,8 +735,18 @@ authorName.className = "author-name";
 authorName.textContent = profile?.display_name ||
 (post.user_id === currentUser?.id ? "You" : "FRIENDLY MEET member");
 
-authorRow.append(avatar,authorName);
+avatar.classList.add("profile-clickable");
+authorName.classList.add("profile-clickable");
 
+avatar.addEventListener("click",()=>{
+  openMemberProfile(post.user_id);
+});
+
+authorName.addEventListener("click",()=>{
+  openMemberProfile(post.user_id);
+});
+
+authorRow.append(avatar,authorName);
 const content = document.createElement("p");
 content.textContent = post.content;
 
