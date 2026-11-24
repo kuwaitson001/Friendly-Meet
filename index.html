@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FRIENDLY MEET</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,sans-serif;background:#f1f4f8;color:#222}
@@ -27,15 +26,15 @@ button.secondary{background:#555}
 .avatar{width:46px;height:46px;border-radius:50%;object-fit:cover;background:#e5e7eb}
 .author-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .author-name{font-weight:bold}
+.like-button{background:#eef2ff;color:#2457d6;border:1px solid #cbd5ff}
+.like-button.liked{background:#2457d6;color:white}
 </style>
 </head>
-
 <body>
 <header>
 <h1>FRIENDLY MEET</h1>
 <p>Meet people. Share moments. Build friendships.</p>
 </header>
-
 <main>
 <div id="status">Welcome to FRIENDLY MEET!</div>
 
@@ -76,7 +75,6 @@ button.secondary{background:#555}
 <script type="module">
 const SUPABASE_URL = "https://odjhvzzgmzekhoicjtcs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_yioRR30R3qZcDr8UzB-7MQ_KX_a8Ub2";
-
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const statusBox = document.getElementById("status");
@@ -93,76 +91,115 @@ function showStatus(message) {
 }
 
 async function refreshAccount() {
-  const {data, error} = await client.auth.getSession();
-  if (error) {
-    showStatus(error.message);
-    return;
-  }
+  const {data,error} = await client.auth.getSession();
+  if(error){showStatus(error.message);return;}
 
   currentUser = data.session?.user || null;
+  authCard.classList.toggle("hidden",!!currentUser);
+  accountCard.classList.toggle("hidden",!currentUser);
+  postArea.classList.toggle("hidden",!currentUser);
 
-  authCard.classList.toggle("hidden", !!currentUser);
-  accountCard.classList.toggle("hidden", !currentUser);
-  postArea.classList.toggle("hidden", !currentUser);
-
-  if (currentUser) {
+  if(currentUser){
     const name = currentUser.user_metadata?.display_name || currentUser.email;
     document.getElementById("welcome").textContent = "Welcome, " + name + "!";
-
     const avatar = currentUser.user_metadata?.avatar_url;
-    if (avatar) {
+    if(avatar){
       avatarPreview.src = avatar;
       avatarPreview.classList.remove("hidden");
-    } else {
+    }else{
       avatarPreview.classList.add("hidden");
     }
-
     showStatus("You're logged in to FRIENDLY MEET.");
-  } else {
+  }else{
     avatarPreview.classList.add("hidden");
     showStatus("Welcome! Sign up or log in to share a post.");
   }
+  await loadPosts();
+}
 
+async function toggleLike(postId,alreadyLiked) {
+  if(!currentUser){
+    showStatus("Please log in to like posts.");
+    return;
+  }
+
+  showStatus(alreadyLiked ? "Removing your Like..." : "Adding your Like...");
+
+  let result;
+  if(alreadyLiked){
+    result = await client.from("likes")
+      .delete()
+      .eq("post_id",postId)
+      .eq("user_id",currentUser.id);
+  }else{
+    result = await client.from("likes")
+      .insert({post_id:postId,user_id:currentUser.id});
+  }
+
+  if(result.error){
+    showStatus("Like error: " + result.error.message);
+    return;
+  }
+
+  showStatus(alreadyLiked ? "Like removed." : "You liked this post!");
   await loadPosts();
 }
 
 async function loadPosts() {
   postsBox.textContent = "Loading posts...";
 
-  const {data, error} = await client
+  const {data,error} = await client
     .from("posts")
-    .select("id, user_id, content, created_at")
-    .order("created_at", {ascending:false});
+    .select("id,user_id,content,created_at")
+    .order("created_at",{ascending:false});
 
-  if (error) {
+  if(error){
     postsBox.textContent = "Could not load posts: " + error.message;
     return;
   }
 
   postsBox.replaceChildren();
 
-  if (!data || data.length === 0) {
+  if(!data || data.length === 0){
     postsBox.textContent = "No posts yet. Be the first to share something!";
     return;
   }
 
-  const userIds = [...new Set(data.map(post => post.user_id).filter(Boolean))];
+  const userIds = [...new Set(data.map(post=>post.user_id).filter(Boolean))];
+  const postIds = data.map(post=>post.id);
 
-  const {data: profiles, error: profileError} = await client
+  const {data:profiles,error:profileError} = await client
     .from("profiles")
-    .select("id, display_name, avatar_url")
-    .in("id", userIds);
+    .select("id,display_name,avatar_url")
+    .in("id",userIds);
 
-  if (profileError) {
+  if(profileError){
     postsBox.textContent = "Could not load member profiles: " + profileError.message;
     return;
   }
 
-  const profileMap = new Map(
-    (profiles || []).map(profile => [profile.id, profile])
-  );
+  const {data:likes,error:likesError} = await client
+    .from("likes")
+    .select("post_id,user_id")
+    .in("post_id",postIds);
 
-  for (const post of data) {
+  if(likesError){
+    postsBox.textContent = "Could not load likes: " + likesError.message;
+    return;
+  }
+
+  const profileMap = new Map((profiles||[]).map(p=>[p.id,p]));
+  const likeCounts = new Map();
+  const likedPosts = new Set();
+
+  for(const like of (likes||[])){
+    likeCounts.set(like.post_id,(likeCounts.get(like.post_id)||0)+1);
+    if(currentUser && like.user_id === currentUser.id){
+      likedPosts.add(like.post_id);
+    }
+  }
+
+  for(const post of data){
     const profile = profileMap.get(post.user_id);
     const article = document.createElement("article");
     article.className = "post";
@@ -174,9 +211,9 @@ async function loadPosts() {
     avatar.className = "avatar";
     avatar.alt = "Profile picture";
 
-    if (profile?.avatar_url) {
+    if(profile?.avatar_url){
       avatar.src = profile.avatar_url;
-    } else {
+    }else{
       avatar.src = "data:image/svg+xml," + encodeURIComponent(
         '<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46"><rect width="100%" height="100%" fill="#e5e7eb"/><circle cx="23" cy="17" r="9" fill="#9ca3af"/><path d="M7 45c1-12 8-17 16-17s15 5 16 17" fill="#9ca3af"/></svg>'
       );
@@ -187,7 +224,7 @@ async function loadPosts() {
     authorName.textContent = profile?.display_name ||
       (post.user_id === currentUser?.id ? "You" : "FRIENDLY MEET member");
 
-    authorRow.append(avatar, authorName);
+    authorRow.append(avatar,authorName);
 
     const content = document.createElement("p");
     content.textContent = post.content;
@@ -195,155 +232,111 @@ async function loadPosts() {
     const date = document.createElement("small");
     date.textContent = new Date(post.created_at).toLocaleString();
 
-    article.append(authorRow, content, date);
+    const alreadyLiked = likedPosts.has(post.id);
+    const likeButton = document.createElement("button");
+    likeButton.className = "like-button" + (alreadyLiked ? " liked" : "");
+    likeButton.textContent = alreadyLiked ? "Unlike" : "Like";
+
+    const likeCount = document.createElement("span");
+    likeCount.textContent = " " + (likeCounts.get(post.id)||0) + " Likes";
+
+    likeButton.addEventListener("click",()=>{
+      toggleLike(post.id,alreadyLiked);
+    });
+
+    article.append(authorRow,content,date,document.createElement("br"),likeButton,likeCount);
     postsBox.append(article);
   }
 }
 
-document.getElementById("signup").addEventListener("click", async () => {
+document.getElementById("signup").addEventListener("click",async()=>{
   const name = document.getElementById("name").value.trim();
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
-
-  if (!name || !email || password.length < 6) {
+  if(!name||!email||password.length<6){
     showStatus("Enter your name, email and a password of at least 6 characters.");
     return;
   }
-
   showStatus("Creating your account...");
-
-  const {data, error} = await client.auth.signUp({
-    email,
-    password,
-    options:{data:{display_name:name}}
+  const {data,error} = await client.auth.signUp({
+    email,password,options:{data:{display_name:name}}
   });
-
-  if (error) {
-    showStatus(error.message);
-  } else if (data.session) {
-    await refreshAccount();
-  } else {
-    showStatus("Account created! Check your email and confirm your address before logging in.");
-  }
+  if(error)showStatus(error.message);
+  else if(data.session)await refreshAccount();
+  else showStatus("Account created! Check your email and confirm your address before logging in.");
 });
 
-document.getElementById("login").addEventListener("click", async () => {
+document.getElementById("login").addEventListener("click",async()=>{
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
-
-  if (!email || !password) {
-    showStatus("Enter your email and password first.");
-    return;
-  }
-
+  if(!email||!password){showStatus("Enter your email and password first.");return;}
   showStatus("Logging in...");
-
   const {error} = await client.auth.signInWithPassword({email,password});
-
-  if (error) showStatus(error.message);
+  if(error)showStatus(error.message);
   else await refreshAccount();
 });
 
-document.getElementById("logout").addEventListener("click", async () => {
+document.getElementById("logout").addEventListener("click",async()=>{
   const {error} = await client.auth.signOut();
-  if (error) showStatus(error.message);
+  if(error)showStatus(error.message);
   else await refreshAccount();
 });
 
-document.getElementById("uploadAvatar").addEventListener("click", async () => {
-  if (!currentUser) {
-    showStatus("Please log in first.");
-    return;
-  }
-
+document.getElementById("uploadAvatar").addEventListener("click",async()=>{
+  if(!currentUser){showStatus("Please log in first.");return;}
   const file = document.getElementById("avatarFile").files[0];
-
-  if (!file) {
-    showStatus("Please choose a picture first.");
-    return;
-  }
-
-  if (!file.type.startsWith("image/") || file.size > 5*1024*1024) {
-    showStatus("Choose an image smaller than 5 MB.");
-    return;
+  if(!file){showStatus("Please choose a picture first.");return;}
+  if(!file.type.startsWith("image/")||file.size>5*1024*1024){
+    showStatus("Choose an image smaller than 5 MB.");return;
   }
 
   showStatus("Uploading your picture...");
-
   const extension = file.name.split(".").pop().toLowerCase();
   const filePath = currentUser.id + "/avatar." + extension;
 
-  const {error: uploadError} = await client.storage
-    .from("avatars")
-    .upload(filePath, file, {upsert:true,contentType:file.type});
+  const {error:uploadError} = await client.storage.from("avatars")
+    .upload(filePath,file,{upsert:true,contentType:file.type});
 
-  if (uploadError) {
-    showStatus("Upload failed: " + uploadError.message);
-    return;
-  }
+  if(uploadError){showStatus("Upload failed: "+uploadError.message);return;}
 
   const {data} = client.storage.from("avatars").getPublicUrl(filePath);
   const avatarUrl = data.publicUrl + "?updated=" + Date.now();
 
-  const {error: authError} = await client.auth.updateUser({
-    data:{avatar_url:avatarUrl}
-  });
+  const {error:authError} = await client.auth.updateUser({data:{avatar_url:avatarUrl}});
+  if(authError){showStatus("Picture uploaded, but account update failed: "+authError.message);return;}
 
-  if (authError) {
-    showStatus("Picture uploaded, but account update failed: " + authError.message);
-    return;
-  }
+  const {error:profileError} = await client.from("profiles")
+    .update({avatar_url:avatarUrl}).eq("id",currentUser.id);
 
-  const {error: profileError} = await client
-    .from("profiles")
-    .update({avatar_url:avatarUrl})
-    .eq("id", currentUser.id);
+  if(profileError){showStatus("Picture uploaded, but profile table update failed: "+profileError.message);return;}
 
-  if (profileError) {
-    showStatus("Picture uploaded, but profile table update failed: " + profileError.message);
-    return;
-  }
-
-  const {data: sessionData} = await client.auth.getSession();
+  const {data:sessionData} = await client.auth.getSession();
   currentUser = sessionData.session?.user || currentUser;
-
   avatarPreview.src = avatarUrl;
   avatarPreview.classList.remove("hidden");
   showStatus("Your profile picture has been uploaded successfully!");
   await loadPosts();
 });
 
-document.getElementById("publish").addEventListener("click", async () => {
+document.getElementById("publish").addEventListener("click",async()=>{
   const content = document.getElementById("postText").value.trim();
-
-  if (!currentUser) {
-    showStatus("Please log in first.");
-    return;
-  }
-
-  if (!content) {
-    showStatus("Write something before sharing.");
-    return;
-  }
+  if(!currentUser){showStatus("Please log in first.");return;}
+  if(!content){showStatus("Write something before sharing.");return;}
 
   showStatus("Sharing your post...");
-
   const {error} = await client.from("posts").insert({
-    user_id:currentUser.id,
-    content
+    user_id:currentUser.id,content
   });
-
-  if (error) {
-    showStatus(error.message);
-  } else {
+  if(error)showStatus(error.message);
+  else{
     document.getElementById("postText").value = "";
     showStatus("Your post has been shared!");
     await loadPosts();
   }
 });
 
-client.auth.onAuthStateChange(() => {
-  setTimeout(refreshAccount, 0);
+client.auth.onAuthStateChange(()=>{
+  setTimeout(refreshAccount,0);
 });
 
 refreshAccount();
