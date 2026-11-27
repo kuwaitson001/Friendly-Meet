@@ -1059,6 +1059,176 @@ $('addStory').onclick=()=>showStatus('Stories layout is ready. Story publishing 
 
 client.auth.onAuthStateChange(()=>setTimeout(refreshAccount,0));
 refreshAccount();
+// FRIENDLY MEET: ONLINE STATUS AND LAST SEEN
+
+const presenceStyle = document.createElement('style');
+presenceStyle.textContent = `
+.online-indicator {
+  display:inline-block;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:#20c767;
+  margin-right:6px;
+}
+.offline-indicator {
+  display:inline-block;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:#999;
+  margin-right:6px;
+}
+.member-presence {
+  font-size:12px;
+  color:#777;
+  margin-top:5px;
+}
+`;
+document.head.appendChild(presenceStyle);
+
+async function updateMyPresence() {
+  if (!currentUser) return;
+
+  const { error } = await client
+    .from('profiles')
+    .update({
+      is_online: true,
+      last_seen: new Date().toISOString()
+    })
+    .eq('id', currentUser.id);
+
+  if (error) console.log('Presence update:', error.message);
+}
+
+async function markMyselfOffline() {
+  if (!currentUser) return;
+
+  await client
+    .from('profiles')
+    .update({
+      is_online: false,
+      last_seen: new Date().toISOString()
+    })
+    .eq('id', currentUser.id);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    updateMyPresence();
+  } else {
+    markMyselfOffline();
+  }
+});
+
+window.addEventListener('beforeunload', markMyselfOffline);
+
+setInterval(() => {
+  if (document.visibilityState === 'visible') {
+    updateMyPresence();
+  }
+}, 30000);
+
+// Refresh member list with online status
+loadMembers = async function(filter = '') {
+  const box = $('membersList');
+
+  if (!currentUser) {
+    box.textContent = 'Please log in to discover members.';
+    return;
+  }
+
+  box.textContent = 'Loading members...';
+
+  let q = client
+    .from('profiles')
+    .select('id,display_name,avatar_url,country,is_online,last_seen')
+    .neq('id', currentUser.id)
+    .order('display_name');
+
+  if (filter) {
+    q = q.ilike('display_name', '%' + filter + '%');
+  }
+
+  const countryFilter = $('memberCountryFilter');
+  if (countryFilter && countryFilter.value) {
+    q = q.eq('country', countryFilter.value);
+  }
+
+  const { data, error } = await q;
+
+  if (error) {
+    box.textContent = 'Could not load members: ' + error.message;
+    return;
+  }
+
+  box.replaceChildren();
+
+  if (!data || !data.length) {
+    box.textContent = 'No members found in this selection yet.';
+    return;
+  }
+
+  data.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'member-row';
+
+    const img = document.createElement('img');
+    img.className = 'avatar';
+    img.src = m.avatar_url || '';
+
+    const info = document.createElement('div');
+
+    const name = document.createElement('strong');
+    name.textContent = m.display_name || 'FRIENDLY MEET member';
+
+    const country = document.createElement('div');
+    country.className = 'section-note';
+    country.textContent = m.country || 'Country not added yet';
+
+    const presence = document.createElement('div');
+    presence.className = 'member-presence';
+
+    const dot = document.createElement('span');
+    dot.className = m.is_online
+      ? 'online-indicator'
+      : 'offline-indicator';
+
+    const status = document.createElement('span');
+
+    if (m.is_online) {
+      status.textContent = 'Online now';
+    } else if (m.last_seen) {
+      status.textContent = 'Last seen: ' +
+        new Date(m.last_seen).toLocaleString();
+    } else {
+      status.textContent = 'Offline';
+    }
+
+    presence.append(dot, status);
+    info.append(name, country, presence);
+    row.append(img, info);
+
+    row.onclick = () => openMemberProfile(m.id);
+
+    box.append(row);
+  });
+};
+
+$('refreshMembers').onclick = () =>
+  loadMembers(getValue('globalSearch'));
+
+if ($('memberCountryFilter')) {
+  $('memberCountryFilter').onchange = () =>
+    loadMembers(getValue('globalSearch'));
+}
+
+$('globalSearch').onkeydown = e => {
+  if (e.key === 'Enter') {
+    showPage('friendsPage');
+    loadMembers(getValue('globalSearch'));
+  }
+};
 </script>
 </body>
 </html>
