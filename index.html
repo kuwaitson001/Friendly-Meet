@@ -50,6 +50,7 @@ display:flex;
 flex-direction:column;
 gap:18px;
 }
+
 .video-card{
 background:#111;
 color:white;
@@ -57,8 +58,10 @@ border-radius:14px;
 overflow:hidden;
 padding:12px;
 }
+
 .video-card .author-row{margin-bottom:10px}
 .video-card .author-name{color:white}
+
 .video-card video{
 width:100%;
 max-height:620px;
@@ -68,38 +71,47 @@ background:#000;
 border-radius:10px;
 display:block;
 }
+
 .video-caption{
 white-space:pre-wrap;
 overflow-wrap:anywhere;
 margin:12px 0;
 }
+
 .video-date{
 color:#ccc;
 font-size:12px;
 }
+
 .video-card .comment-item{
 background:#292929;
 color:white;
 }
+
 .video-card .comment-input{
 background:white;
 color:#222;
 }
+
 .video-card .comment-heading{color:white}
+
 .video-card .like-button{
 background:#fff;
 color:#2457d6;
 }
+
 .video-card .like-button.liked{
 background:#2457d6;
 color:white;
 }
+
 .video-actions{
 display:flex;
 align-items:center;
 flex-wrap:wrap;
 gap:5px;
 }
+
 .video-feed-empty{
 background:#f7f8fc;
 padding:20px;
@@ -214,7 +226,6 @@ color:#555;
 <button id="logout" class="secondary">Log Out</button>
 </section>
 
-<!-- VIDEO UPLOAD -->
 <section class="card hidden" id="videoUploadCard">
 <h2>Share a Video</h2>
 <p class="section-note">Upload a funny video or any moment you want to share with the community.</p>
@@ -224,7 +235,6 @@ color:#555;
 <p class="section-note">Maximum upload size: 50 MB. Your video may use mobile data when played.</p>
 </section>
 
-<!-- VIDEO FEED -->
 <section class="card">
 <h2>Funny Videos & Moments</h2>
 <p class="section-note">Scroll down to discover videos shared by members.</p>
@@ -233,7 +243,6 @@ color:#555;
 </div>
 </section>
 
-<!-- COMMUNITY POSTS -->
 <section class="card">
 <h2>Community Feed</h2>
 <div id="postArea" class="hidden">
@@ -265,6 +274,34 @@ const videoFeed = document.getElementById("videoFeed");
 
 let currentUser = null;
 let currentProfile = {};
+let videoObserver = null;
+
+/* AUTOMATIC VIDEO PLAYBACK */
+function startVideoAutoplay(){
+if(videoObserver){
+videoObserver.disconnect();
+}
+
+const players = videoFeed.querySelectorAll("video");
+
+videoObserver = new IntersectionObserver(entries=>{
+entries.forEach(entry=>{
+const player = entry.target;
+
+if(entry.isIntersecting && entry.intersectionRatio >= 0.65){
+player.play().catch(()=>{});
+}else{
+player.pause();
+}
+});
+},{
+threshold:[0,0.25,0.65,0.85,1]
+});
+
+players.forEach(player=>{
+videoObserver.observe(player);
+});
+}
 
 function showStatus(message){
 statusBox.textContent = message;
@@ -913,6 +950,11 @@ await loadVideos();
 
 /* LOAD VIDEO FEED */
 async function loadVideos(){
+if(videoObserver){
+videoObserver.disconnect();
+videoObserver = null;
+}
+
 videoFeed.replaceChildren();
 
 const loading = document.createElement("div");
@@ -1041,7 +1083,10 @@ player.src = video.video_url;
 player.controls = true;
 player.playsInline = true;
 player.loop = true;
+player.muted = true;
+player.autoplay = true;
 player.preload = "metadata";
+player.setAttribute("webkit-playsinline","true");
 
 const caption = document.createElement("p");
 caption.className = "video-caption";
@@ -1116,6 +1161,9 @@ commentArea.append(loginMessage);
 card.append(commentArea);
 videoFeed.append(card);
 }
+
+/* START AUTOMATIC VIDEO PLAYBACK */
+startVideoAutoplay();
 }
 
 /* SIGN UP */
