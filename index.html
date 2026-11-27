@@ -31,7 +31,7 @@
 <script>
 // Keep your existing Supabase project. Paste your current publishable key below.
 const SUPABASE_URL="https://odjhvzzgmzekhoicjtcs.supabase.co";
-const SUPABASE_KEY="PASTE_YOUR_EXISTING_SUPABASE_PUBLISHABLE_KEY_HERE";
+const SUPABASE_KEY="sb_publishable_yioRR30R3qZcDr8UzB-7MQ_KX_a8Ub2";
 const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentUser=null,currentProfile={},activeConversationUser=null,activeConversationName="",messageRefreshTimer=null,inboxRefreshTimer=null,videoObserver=null;
 const $=id=>document.getElementById(id),getValue=id=>$(id).value.trim(),setValue=(id,v)=>$(id).value=v||"";
