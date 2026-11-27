@@ -1059,7 +1059,61 @@ $('addStory').onclick=()=>showStatus('Stories layout is ready. Story publishing 
 
 client.auth.onAuthStateChange(()=>setTimeout(refreshAccount,0));
 refreshAccount();
-// FRIENDLY MEET: ONLINE STATUS AND LAST SEEN
+// FRIENDLY MEET: LIVE ONLINE STATUS UPDATES
+
+let friendlyMeetLiveChannel = null;
+
+async function startFriendlyMeetLiveUpdates() {
+  const { data } = await client.auth.getUser();
+
+  if (!data?.user) return;
+
+  if (friendlyMeetLiveChannel) {
+    await client.removeChannel(friendlyMeetLiveChannel);
+    friendlyMeetLiveChannel = null;
+  }
+
+  friendlyMeetLiveChannel = client
+    .channel('friendly-meet-live-presence')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'profiles'
+      },
+      () => {
+        const friendsPage = $('friendsPage');
+
+        if (
+          friendsPage &&
+          getComputedStyle(friendsPage).display !== 'none'
+        ) {
+          clearTimeout(window.friendlyMeetRefreshTimer);
+
+          window.friendlyMeetRefreshTimer = setTimeout(() => {
+            loadMembers(getValue('globalSearch'));
+          }, 500);
+        }
+      }
+    )
+    .subscribe();
+}
+
+// Start live updates after login
+client.auth.onAuthStateChange((event, session) => {
+  if (session?.user) {
+    setTimeout(startFriendlyMeetLiveUpdates, 1000);
+  } else {
+    if (friendlyMeetLiveChannel) {
+      client.removeChannel(friendlyMeetLiveChannel);
+      friendlyMeetLiveChannel = null;
+    }
+  }
+});
+
+startFriendlyMeetLiveUpdates();
+  // FRIENDLY MEET: ONLINE STATUS AND LAST SEEN
 
 const presenceStyle = document.createElement('style');
 presenceStyle.textContent = `
