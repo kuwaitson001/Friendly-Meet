@@ -721,8 +721,14 @@ document.getElementById("signup").addEventListener("click",async()=>{
 const name=getValue("name"),email=getValue("email"),password=document.getElementById("password").value;
 if(!name||!email||password.length<6){showStatus("Enter your name, email and a password of at least 6 characters.");return}
 showStatus("Creating your account...");
-const {data,error}=await client.auth.signUp({email,password,options:{data:{display_name:name}}});
-if(error)showStatus(error.message);
+const {data,error}=await client.auth.signUp({
+  email,
+  password,
+  options:{
+    data:{display_name:name},
+    emailRedirectTo:"https://kuwaitson001.github.io/Friendly-Meet/"
+  }
+});if(error)showStatus(error.message);
 else if(data.session)await refreshAccount();
 else showStatus("Account created! Check your email and confirm your address before logging in.");
 });
