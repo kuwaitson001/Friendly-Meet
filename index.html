@@ -5,123 +5,73 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FRIENDLY MEET</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f1f4f8;color:#222}
-header{background:#2457d6;color:white;padding:22px;text-align:center}
-header h1{margin:0;font-size:28px}
-header p{margin:8px 0 0}
-main{max-width:650px;margin:25px auto;padding:0 14px}
-.card{background:white;padding:20px;border-radius:12px;margin-bottom:18px;box-shadow:0 2px 9px #00000010}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f4f8;color:#222;padding-bottom:75px}
+header{background:#2457d6;color:white;padding:20px;text-align:center}
+header h1{margin:0;font-size:27px}
+header p{margin:7px 0 0}
+main{max-width:700px;margin:20px auto;padding:0 12px}
+.card{background:white;padding:18px;border-radius:12px;margin-bottom:16px;box-shadow:0 2px 9px #00000010}
 h2{margin-top:0;color:#2457d6}
 input,textarea,select{width:100%;padding:12px;margin:7px 0;border:1px solid #ccc;border-radius:7px;font-size:15px}
-textarea{min-height:90px;resize:vertical}
-button{background:#2457d6;color:white;border:0;padding:12px 17px;border-radius:7px;cursor:pointer;margin:5px 4px 5px 0}
+textarea{min-height:85px;resize:vertical}
+button{background:#2457d6;color:white;border:0;padding:11px 15px;border-radius:7px;cursor:pointer;margin:4px}
 button:hover{background:#1743ae}
 button.secondary{background:#555}
 .hidden{display:none!important}
-.avatar{width:65px;height:65px;border-radius:50%;object-fit:cover;background:#e5e7eb}
+.avatar{width:58px;height:58px;border-radius:50%;object-fit:cover;background:#e5e7eb}
 .author-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .author-name,.comment-name{font-weight:bold}
+.profile-clickable{cursor:pointer}
+.profile-clickable:hover{text-decoration:underline}
 .like-button{background:#eef2ff;color:#2457d6;border:1px solid #cbd5ff}
 .like-button.liked{background:#2457d6;color:white}
 .comment-area{margin-top:12px}
 .comment-item{background:#f1f4f8;padding:10px;border-radius:8px;margin:8px 0}
-.comment-input{min-height:60px}
-.comment-heading{font-weight:bold;margin-top:14px}
+.comment-input{min-height:55px}
+.comment-heading{font-weight:bold;margin-top:12px}
 .profile-details{background:#f7f8fc;padding:12px;border-radius:8px;margin-top:12px}
 .profile-line{padding:8px 0;border-bottom:1px solid #e5e7eb;overflow-wrap:anywhere}
-.profile-line:last-child{border-bottom:0}
 .profile-label{font-weight:bold;color:#2457d6}
 .form-label{display:block;font-weight:bold;margin-top:10px}
 #status{padding:10px;border-radius:7px;background:#eef2ff;margin-bottom:15px;white-space:pre-wrap}
 .section-note{color:#666;font-size:13px}
 .post{background:#fff;padding:15px;border-radius:10px;margin:14px 0;box-shadow:0 2px 8px #00000010;overflow-wrap:anywhere}
-.profile-clickable{cursor:pointer}
-.profile-clickable:hover{opacity:.8;text-decoration:underline}
 .member-profile-modal{position:fixed;inset:0;background:#0009;display:flex;align-items:center;justify-content:center;padding:15px;z-index:1000}
 .member-profile-card{background:white;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:22px;border-radius:14px}
 .member-profile-card .avatar{width:95px;height:95px}
-
-/* VIDEO FEED */
-.video-feed{
-display:flex;
-flex-direction:column;
-gap:18px;
-}
-
-.video-card{
-background:#111;
-color:white;
-border-radius:14px;
-overflow:hidden;
-padding:12px;
-}
-
-.video-card .author-row{margin-bottom:10px}
+.video-feed{display:flex;flex-direction:column;gap:18px}
+.video-card{background:#111;color:white;border-radius:14px;overflow:hidden;padding:12px}
 .video-card .author-name{color:white}
-
-.video-card video{
-width:100%;
-max-height:620px;
-aspect-ratio:9/16;
-object-fit:contain;
-background:#000;
-border-radius:10px;
-display:block;
-}
-
-.video-caption{
-white-space:pre-wrap;
-overflow-wrap:anywhere;
-margin:12px 0;
-}
-
-.video-date{
-color:#ccc;
-font-size:12px;
-}
-
-.video-card .comment-item{
-background:#292929;
-color:white;
-}
-
-.video-card .comment-input{
-background:white;
-color:#222;
-}
-
-.video-card .comment-heading{color:white}
-
-.video-card .like-button{
-background:#fff;
-color:#2457d6;
-}
-
-.video-card .like-button.liked{
-background:#2457d6;
-color:white;
-}
-
-.video-actions{
-display:flex;
-align-items:center;
-flex-wrap:wrap;
-gap:5px;
-}
-
-.video-feed-empty{
-background:#f7f8fc;
-padding:20px;
-border-radius:10px;
-text-align:center;
-color:#555;
-}
+.video-card video{width:100%;max-height:620px;aspect-ratio:9/16;object-fit:contain;background:#000;border-radius:10px;display:block}
+.video-caption{white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0}
+.video-date{color:#ccc;font-size:12px}
+.video-card .comment-item{background:#292929;color:white}
+.video-card .like-button{background:white;color:#2457d6}
+.video-card .like-button.liked{background:#2457d6;color:white}
+.video-feed-empty{background:#f7f8fc;padding:20px;border-radius:10px;text-align:center;color:#555}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #ddd;display:flex;justify-content:space-around;z-index:900;padding:7px 2px calc(7px + env(safe-area-inset-bottom));box-shadow:0 -2px 8px #00000010}
+.bottom-nav button{background:transparent;color:#555;margin:0;padding:7px 3px;flex:1;font-size:11px;border-radius:6px}
+.bottom-nav button.active{color:#2457d6;font-weight:bold;background:#eef2ff}
+.nav-icon{display:block;font-size:19px;margin-bottom:3px}
+.page{display:none}
+.page.active{display:block}
+.message-list{display:flex;flex-direction:column;gap:8px}
+.member-row{display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid #eee;cursor:pointer}
+.member-row:hover{background:#f5f7fb}
+.member-row .avatar{width:45px;height:45px}
+.chat-box{border:1px solid #ddd;border-radius:10px;padding:10px;margin-top:12px}
+.chat-messages{height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:8px;background:#f7f8fc;border-radius:8px}
+.message-bubble{padding:10px 12px;border-radius:12px;background:#e5e7eb;max-width:85%;overflow-wrap:anywhere;align-self:flex-start}
+.message-bubble.mine{background:#2457d6;color:white;align-self:flex-end}
+.message-time{font-size:10px;opacity:.7;margin-top:4px}
+.business-card{border:1px solid #eee;border-radius:10px;padding:13px;margin:12px 0;overflow-wrap:anywhere}
+.business-card img{width:100%;max-height:240px;object-fit:cover;border-radius:8px}
+.business-meta{font-size:13px;color:#666}
+.empty-note{padding:16px;background:#f7f8fc;border-radius:8px;color:#555}
 </style>
 </head>
-
 <body>
 <header>
 <h1>FRIENDLY MEET</h1>
@@ -129,7 +79,6 @@ color:#555;
 </header>
 
 <main>
-
 <div id="memberProfileModal" class="member-profile-modal hidden">
 <div class="member-profile-card">
 <button id="closeMemberProfile" class="secondary">Close</button>
@@ -149,6 +98,7 @@ color:#555;
 <p><small>Use the same email and password when logging in.</small></p>
 </section>
 
+<section id="homePage" class="page active">
 <section class="card hidden" id="accountCard">
 <h2 id="welcome">Welcome!</h2>
 <img id="avatarPreview" class="avatar hidden" alt="Profile picture">
@@ -156,99 +106,65 @@ color:#555;
 <input id="avatarFile" type="file" accept="image/*">
 <button id="uploadAvatar">Upload Picture</button>
 <hr>
-
 <h2>My Profile</h2>
-<p class="section-note">Your personal information and details.</p>
 <div id="profileDetails" class="profile-details">Loading your profile...</div>
 <button id="editProfile">Edit Profile</button>
 
 <div id="profileForm" class="hidden">
 <hr>
 <h2>Edit Your Profile</h2>
-
 <label class="form-label" for="profileName">Full name</label>
 <input id="profileName" maxlength="80" placeholder="Your full name">
-
 <label class="form-label" for="bio">About me / Bio</label>
-<textarea id="bio" maxlength="500" placeholder="Tell people about yourself..."></textarea>
-
+<textarea id="bio" maxlength="500"></textarea>
 <label class="form-label" for="country">Country</label>
-<input id="country" maxlength="100" placeholder="Your country">
-
+<input id="country" maxlength="100">
 <label class="form-label" for="state">State / Region</label>
-<input id="state" maxlength="100" placeholder="Your state or region">
-
+<input id="state" maxlength="100">
 <label class="form-label" for="city">City</label>
-<input id="city" maxlength="100" placeholder="Your city">
-
+<input id="city" maxlength="100">
 <label class="form-label" for="hometown">Hometown</label>
-<input id="hometown" maxlength="100" placeholder="Where you come from">
-
+<input id="hometown" maxlength="100">
 <label class="form-label" for="birthday">Birthday</label>
 <input id="birthday" type="date">
-
 <label class="form-label" for="job_title">Job / Occupation</label>
-<input id="job_title" maxlength="150" placeholder="What work do you do?">
-
+<input id="job_title" maxlength="150">
 <label class="form-label" for="workplace">Workplace</label>
-<input id="workplace" maxlength="150" placeholder="Where do you work?">
-
+<input id="workplace" maxlength="150">
 <label class="form-label" for="school">School</label>
-<input id="school" maxlength="150" placeholder="Your school">
-
+<input id="school" maxlength="150">
 <label class="form-label" for="education">Education</label>
-<input id="education" maxlength="150" placeholder="Your educational background">
-
+<input id="education" maxlength="150">
 <label class="form-label" for="relationship_status">Relationship status</label>
 <select id="relationship_status">
 <option value="">Prefer not to say</option>
-<option value="Single">Single</option>
-<option value="In a relationship">In a relationship</option>
-<option value="Engaged">Engaged</option>
-<option value="Married">Married</option>
-<option value="Complicated">It's complicated</option>
+<option>Single</option>
+<option>In a relationship</option>
+<option>Engaged</option>
+<option>Married</option>
+<option>Complicated</option>
 </select>
-
 <label class="form-label" for="hobbies">Hobbies</label>
-<textarea id="hobbies" maxlength="500" placeholder="What do you enjoy doing?"></textarea>
-
+<textarea id="hobbies" maxlength="500"></textarea>
 <label class="form-label" for="interests">Interests</label>
-<textarea id="interests" maxlength="500" placeholder="Your interests..."></textarea>
-
+<textarea id="interests" maxlength="500"></textarea>
 <label class="form-label" for="favorite_things">Favourite things</label>
-<textarea id="favorite_things" maxlength="500" placeholder="Your favourite things..."></textarea>
-
+<textarea id="favorite_things" maxlength="500"></textarea>
 <p class="section-note">Only share information you're comfortable displaying on your profile.</p>
 <button id="saveProfile">Save Profile</button>
 <button id="cancelProfile" class="secondary">Cancel</button>
 </div>
-
 <button id="logout" class="secondary">Log Out</button>
 </section>
 
-<section class="card hidden" id="videoUploadCard">
-<h2>Share a Video</h2>
-<p class="section-note">Upload a funny video or any moment you want to share with the community.</p>
-<input id="videoFile" type="file" accept="video/mp4,video/webm,video/quicktime,video/*">
-<textarea id="videoCaption" maxlength="500" placeholder="Write a caption for your video..."></textarea>
-<button id="uploadVideo">Upload Video</button>
-<p class="section-note">Maximum upload size: 50 MB. Your video may use mobile data when played.</p>
-</section>
-
-<section class="card">
-<h2>Funny Videos & Moments</h2>
-<p class="section-note">Scroll down to discover videos shared by members.</p>
-<div id="videoFeed" class="video-feed">
-<div class="video-feed-empty">Loading videos...</div>
-</div>
+<section class="card hidden" id="postComposer">
+<h2>What's on your mind?</h2>
+<textarea id="postText" maxlength="2000" placeholder="Share something with the community..."></textarea>
+<button id="publish">Share Post</button>
 </section>
 
 <section class="card">
 <h2>Community Feed</h2>
-<div id="postArea" class="hidden">
-<textarea id="postText" maxlength="2000" placeholder="What's on your mind?"></textarea>
-<button id="publish">Share Post</button>
-</div>
 <div id="posts">Loading posts...</div>
 </section>
 
@@ -256,248 +172,242 @@ color:#555;
 <h2>About FRIENDLY MEET</h2>
 <p>A place to meet people, share ideas and build meaningful friendships.</p>
 </section>
+</section>
+
+<section id="videosPage" class="page">
+<section class="card hidden" id="videoUploadCard">
+<h2>Share a Video</h2>
+<p class="section-note">Upload a funny video or any moment you want to share.</p>
+<input id="videoFile" type="file" accept="video/mp4,video/webm,video/quicktime,video/*">
+<textarea id="videoCaption" maxlength="500" placeholder="Write a caption..."></textarea>
+<button id="uploadVideo">Upload Video</button>
+<p class="section-note">Maximum upload size: 50 MB.</p>
+</section>
+<section class="card">
+<h2>Funny Videos & Moments</h2>
+<div id="videoFeed" class="video-feed">
+<div class="video-feed-empty">Loading videos...</div>
+</div>
+</section>
+</section>
+
+<section id="friendsPage" class="page">
+<section class="card">
+<h2>Discover Members</h2>
+<p class="section-note">Find people in the FRIENDLY MEET community. Open a profile or start a private conversation.</p>
+<button id="refreshMembers">Refresh Members</button>
+<div id="membersList" class="message-list">
+<div class="empty-note">Log in to discover members.</div>
+</div>
+</section>
+</section>
+
+<section id="messagesPage" class="page">
+<section class="card">
+<h2>Private Messages</h2>
+<p class="section-note">Choose a member from Friends to start a private conversation.</p>
+<div id="messageStatus" class="empty-note">Your conversations will appear here.</div>
+<div id="chatPanel" class="chat-box hidden">
+<h3 id="chatTitle">Conversation</h3>
+<div id="chatMessages" class="chat-messages"></div>
+<textarea id="messageInput" maxlength="2000" placeholder="Write a private message..."></textarea>
+<button id="sendMessage">Send Message</button>
+<button id="closeChat" class="secondary">Close Conversation</button>
+</div>
+</section>
+</section>
+
+<section id="businessPage" class="page">
+<section class="card">
+<h2>Promote Your Business</h2>
+<p class="section-note">Share your business with FRIENDLY MEET members.</p>
+<input id="businessName" maxlength="120" placeholder="Business name">
+<input id="businessCategory" maxlength="100" placeholder="Business category">
+<textarea id="businessDescription" maxlength="1500" placeholder="Describe your business and what you offer..."></textarea>
+<input id="businessPhone" maxlength="40" placeholder="Phone number">
+<input id="businessWhatsapp" maxlength="40" placeholder="WhatsApp number">
+<button id="publishBusiness">Publish Business</button>
+</section>
+<section class="card">
+<h2>Businesses & Promotions</h2>
+<div id="businessList">Loading businesses...</div>
+</section>
+</section>
 </main>
 
+<nav class="bottom-nav">
+<button class="active" data-page="homePage"><span class="nav-icon">⌂</span>Home</button>
+<button data-page="videosPage"><span class="nav-icon">▶</span>Videos</button>
+<button data-page="friendsPage"><span class="nav-icon">♙</span>Friends</button>
+<button data-page="messagesPage"><span class="nav-icon">✉</span>Messages</button>
+<button data-page="businessPage"><span class="nav-icon">▣</span>Business</button>
+</nav>
+
 <script>
-const SUPABASE_URL = "https://odjhvzzgmzekhoicjtcs.supabase.co";
-const SUPABASE_KEY = "sb_publishable_yioRR30R3qZcDr8UzB-7MQ_KX_a8Ub2";
+const SUPABASE_URL="https://odjhvzzgmzekhoicjtcs.supabase.co";
+const SUPABASE_KEY="sb_publishable_yioRR30R3qZcDr8UzB-7MQ_KX_a8Ub2";
+const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const client = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const statusBox=document.getElementById("status");
+const authCard=document.getElementById("authCard");
+const accountCard=document.getElementById("accountCard");
+const postsBox=document.getElementById("posts");
+const avatarPreview=document.getElementById("avatarPreview");
+const videoFeed=document.getElementById("videoFeed");
 
-const statusBox = document.getElementById("status");
-const authCard = document.getElementById("authCard");
-const accountCard = document.getElementById("accountCard");
-const postArea = document.getElementById("postArea");
-const postsBox = document.getElementById("posts");
-const avatarPreview = document.getElementById("avatarPreview");
-const videoFeed = document.getElementById("videoFeed");
+let currentUser=null;
+let currentProfile={};
+let videoObserver=null;
+let activeConversationUser=null;
+let messageRefreshTimer=null;
 
-let currentUser = null;
-let currentProfile = {};
-let videoObserver = null;
+function showStatus(message){statusBox.textContent=message}
+function getValue(id){return document.getElementById(id).value.trim()}
+function setValue(id,value){document.getElementById(id).value=value||""}
 
-/* AUTOMATIC VIDEO PLAYBACK */
+function showPage(pageId){
+document.querySelectorAll(".page").forEach(page=>page.classList.remove("active"));
+document.getElementById(pageId).classList.add("active");
+document.querySelectorAll(".bottom-nav button").forEach(button=>{
+button.classList.toggle("active",button.dataset.page===pageId);
+});
+if(pageId==="videosPage")loadVideos();
+if(pageId==="friendsPage")loadMembers();
+if(pageId==="businessPage")loadBusinesses();
+if(pageId==="messagesPage")loadConversationList();
+window.scrollTo({top:0,behavior:"smooth"});
+}
+
+document.querySelectorAll(".bottom-nav button").forEach(button=>{
+button.addEventListener("click",()=>showPage(button.dataset.page));
+});
+
 function startVideoAutoplay(){
-if(videoObserver){
-videoObserver.disconnect();
-}
-
-const players = videoFeed.querySelectorAll("video");
-
-videoObserver = new IntersectionObserver(entries=>{
+if(videoObserver)videoObserver.disconnect();
+const players=videoFeed.querySelectorAll("video");
+videoObserver=new IntersectionObserver(entries=>{
 entries.forEach(entry=>{
-const player = entry.target;
-
-if(entry.isIntersecting && entry.intersectionRatio >= 0.65){
-player.play().catch(()=>{});
+if(entry.isIntersecting&&entry.intersectionRatio>=0.65){
+entry.target.play().catch(()=>{});
 }else{
-player.pause();
+entry.target.pause();
 }
 });
-},{
-threshold:[0,0.25,0.65,0.85,1]
-});
-
-players.forEach(player=>{
-videoObserver.observe(player);
-});
+},{threshold:[0,0.25,0.65,0.85,1]});
+players.forEach(player=>videoObserver.observe(player));
 }
 
-function showStatus(message){
-statusBox.textContent = message;
-}
-
-function getValue(id){
-return document.getElementById(id).value.trim();
-}
-
-function setValue(id,value){
-document.getElementById(id).value = value || "";
-}
-
-/* DISPLAY MY PROFILE */
 function displayProfile(profile){
-const box = document.getElementById("profileDetails");
+const box=document.getElementById("profileDetails");
 box.replaceChildren();
-
-const fields = [
-["About me",profile.bio],
-["Country",profile.country],
-["State / Region",profile.state],
-["City",profile.city],
-["Hometown",profile.hometown],
-["Birthday",profile.birthday],
-["Job",profile.job_title],
-["Workplace",profile.workplace],
-["School",profile.school],
-["Education",profile.education],
+const fields=[
+["About me",profile.bio],["Country",profile.country],
+["State / Region",profile.state],["City",profile.city],
+["Hometown",profile.hometown],["Birthday",profile.birthday],
+["Job",profile.job_title],["Workplace",profile.workplace],
+["School",profile.school],["Education",profile.education],
 ["Relationship status",profile.relationship_status],
-["Hobbies",profile.hobbies],
-["Interests",profile.interests],
+["Hobbies",profile.hobbies],["Interests",profile.interests],
 ["Favourite things",profile.favorite_things]
 ];
-
-let hasDetails = false;
-
+let found=false;
 for(const [label,value] of fields){
-if(!value) continue;
-hasDetails = true;
-const line = document.createElement("div");
-line.className = "profile-line";
-const heading = document.createElement("span");
-heading.className = "profile-label";
-heading.textContent = label + ": ";
-const content = document.createElement("span");
-content.textContent = value;
+if(!value)continue;
+found=true;
+const line=document.createElement("div");
+line.className="profile-line";
+const heading=document.createElement("span");
+heading.className="profile-label";
+heading.textContent=label+": ";
+const content=document.createElement("span");
+content.textContent=value;
 line.append(heading,content);
 box.append(line);
 }
-
-if(!hasDetails){
-box.textContent = "You haven't added your profile information yet. Click Edit Profile to get started.";
-}
+if(!found)box.textContent="You haven't added your profile information yet. Click Edit Profile to get started.";
 }
 
-/* VIEW ANOTHER MEMBER'S PROFILE */
 async function openMemberProfile(userId){
-if(!userId) return;
-
-const modal = document.getElementById("memberProfileModal");
-const content = document.getElementById("memberProfileContent");
+if(!userId)return;
+const modal=document.getElementById("memberProfileModal");
+const content=document.getElementById("memberProfileContent");
 modal.classList.remove("hidden");
-content.textContent = "Loading member profile...";
-
-const {data:profile,error} = await client
-.from("profiles")
-.select("*")
-.eq("id",userId)
-.maybeSingle();
-
-if(error){
-content.textContent = "Could not load profile: " + error.message;
-return;
-}
-if(!profile){
-content.textContent = "This member's profile could not be found.";
-return;
-}
-
+content.textContent="Loading member profile...";
+const {data:profile,error}=await client.from("profiles").select("*").eq("id",userId).maybeSingle();
+if(error){content.textContent="Could not load profile: "+error.message;return}
+if(!profile){content.textContent="This member's profile could not be found.";return}
 content.replaceChildren();
-
-const avatar = document.createElement("img");
-avatar.className = "avatar";
-avatar.alt = "Member profile picture";
-if(profile.avatar_url) avatar.src = profile.avatar_url;
-
-const name = document.createElement("h2");
-name.textContent = profile.display_name || "FRIENDLY MEET member";
+const avatar=document.createElement("img");
+avatar.className="avatar";
+avatar.alt="Member profile picture";
+if(profile.avatar_url)avatar.src=profile.avatar_url;
+const name=document.createElement("h2");
+name.textContent=profile.display_name||"FRIENDLY MEET member";
 content.append(avatar,name);
-
-const fields = [
-["About me",profile.bio],
-["Country",profile.country],
-["State / Region",profile.state],
-["City",profile.city],
-["Hometown",profile.hometown],
-["Birthday",profile.birthday],
-["Job",profile.job_title],
-["Workplace",profile.workplace],
-["School",profile.school],
-["Education",profile.education],
-["Relationship status",profile.relationship_status],
-["Hobbies",profile.hobbies],
-["Interests",profile.interests],
+const fields=[
+["About me",profile.bio],["Country",profile.country],["State / Region",profile.state],
+["City",profile.city],["Hometown",profile.hometown],["Birthday",profile.birthday],
+["Job",profile.job_title],["Workplace",profile.workplace],["School",profile.school],
+["Education",profile.education],["Relationship status",profile.relationship_status],
+["Hobbies",profile.hobbies],["Interests",profile.interests],
 ["Favourite things",profile.favorite_things]
 ];
-
-let found = false;
+let found=false;
 for(const [label,value] of fields){
-if(!value) continue;
-found = true;
-const line = document.createElement("div");
-line.className = "profile-line";
-line.textContent = label + ": " + value;
+if(!value)continue;
+found=true;
+const line=document.createElement("div");
+line.className="profile-line";
+line.textContent=label+": "+value;
 content.append(line);
 }
 if(!found){
-const message = document.createElement("p");
-message.textContent = "This member hasn't added profile details yet.";
-content.append(message);
+const p=document.createElement("p");
+p.textContent="This member hasn't added profile details yet.";
+content.append(p);
 }
+const messageButton=document.createElement("button");
+messageButton.textContent="Send Private Message";
+messageButton.addEventListener("click",()=>{
+modal.classList.add("hidden");
+openChat(userId,profile.display_name||"Member");
+showPage("messagesPage");
+});
+if(currentUser&&userId!==currentUser.id)content.append(messageButton);
 }
 
 document.getElementById("closeMemberProfile").addEventListener("click",()=>{
 document.getElementById("memberProfileModal").classList.add("hidden");
 });
-
 document.getElementById("memberProfileModal").addEventListener("click",event=>{
-if(event.target.id === "memberProfileModal"){
-event.currentTarget.classList.add("hidden");
-}
+if(event.target.id==="memberProfileModal")event.currentTarget.classList.add("hidden");
 });
 
-/* LOAD MY PROFILE */
 async function loadMyProfile(){
-if(!currentUser) return;
-
-const {data,error} = await client
-.from("profiles")
-.select("*")
-.eq("id",currentUser.id)
-.maybeSingle();
-
-if(error){
-showStatus("Profile loading error: " + error.message);
-return;
-}
-
-currentProfile = data || {};
-
+if(!currentUser)return;
+const {data,error}=await client.from("profiles").select("*").eq("id",currentUser.id).maybeSingle();
+if(error){showStatus("Profile loading error: "+error.message);return}
+currentProfile=data||{};
 if(currentProfile.avatar_url){
-avatarPreview.src = currentProfile.avatar_url;
+avatarPreview.src=currentProfile.avatar_url;
 avatarPreview.classList.remove("hidden");
-}else{
-avatarPreview.classList.add("hidden");
-}
-
-setValue("profileName",currentProfile.display_name || currentUser.user_metadata?.display_name);
-setValue("bio",currentProfile.bio);
-setValue("country",currentProfile.country);
-setValue("state",currentProfile.state);
-setValue("city",currentProfile.city);
-setValue("hometown",currentProfile.hometown);
-setValue("birthday",currentProfile.birthday);
-setValue("job_title",currentProfile.job_title);
-setValue("workplace",currentProfile.workplace);
-setValue("school",currentProfile.school);
-setValue("education",currentProfile.education);
-setValue("relationship_status",currentProfile.relationship_status);
-setValue("hobbies",currentProfile.hobbies);
-setValue("interests",currentProfile.interests);
-setValue("favorite_things",currentProfile.favorite_things);
-
+}else avatarPreview.classList.add("hidden");
+setValue("profileName",currentProfile.display_name||currentUser.user_metadata?.display_name);
+["bio","country","state","city","hometown","birthday","job_title","workplace","school","education","relationship_status","hobbies","interests","favorite_things"].forEach(id=>setValue(id,currentProfile[id]));
 displayProfile(currentProfile);
 }
 
-/* REFRESH ACCOUNT */
 async function refreshAccount(){
-const {data,error} = await client.auth.getSession();
-
-if(error){
-showStatus(error.message);
-return;
-}
-
-currentUser = data.session?.user || null;
-
+const {data,error}=await client.auth.getSession();
+if(error){showStatus(error.message);return}
+currentUser=data.session?.user||null;
 authCard.classList.toggle("hidden",!!currentUser);
 accountCard.classList.toggle("hidden",!currentUser);
-postArea.classList.toggle("hidden",!currentUser);
+document.getElementById("postComposer").classList.toggle("hidden",!currentUser);
 document.getElementById("videoUploadCard").classList.toggle("hidden",!currentUser);
-
 if(currentUser){
-const name = currentUser.user_metadata?.display_name || currentUser.email;
-document.getElementById("welcome").textContent = "Welcome, " + name + "!";
+const name=currentUser.user_metadata?.display_name||currentUser.email;
+document.getElementById("welcome").textContent="Welcome, "+name+"!";
 await loadMyProfile();
 showStatus("You're logged in to FRIENDLY MEET.");
 }else{
@@ -505,824 +415,551 @@ avatarPreview.classList.add("hidden");
 document.getElementById("profileForm").classList.add("hidden");
 showStatus("Welcome! Sign up or log in to share a post or video.");
 }
-
 await loadPosts();
 await loadVideos();
 }
 
-/* EDIT PROFILE */
 document.getElementById("editProfile").addEventListener("click",async()=>{
 await loadMyProfile();
 document.getElementById("profileForm").classList.remove("hidden");
-document.getElementById("profileForm").scrollIntoView({behavior:"smooth",block:"start"});
+document.getElementById("profileForm").scrollIntoView({behavior:"smooth"});
 });
-
 document.getElementById("cancelProfile").addEventListener("click",()=>{
 document.getElementById("profileForm").classList.add("hidden");
 });
 
-/* SAVE PROFILE */
 document.getElementById("saveProfile").addEventListener("click",async()=>{
-if(!currentUser){
-showStatus("Please log in first.");
-return;
-}
-
-const profileData = {
-display_name:getValue("profileName"),
-bio:getValue("bio"),
-country:getValue("country"),
-state:getValue("state"),
-city:getValue("city"),
-hometown:getValue("hometown"),
-birthday:getValue("birthday") || null,
-job_title:getValue("job_title"),
-workplace:getValue("workplace"),
-school:getValue("school"),
-education:getValue("education"),
-relationship_status:getValue("relationship_status"),
-hobbies:getValue("hobbies"),
-interests:getValue("interests"),
-favorite_things:getValue("favorite_things")
+if(!currentUser){showStatus("Please log in first.");return}
+const profileData={
+display_name:getValue("profileName"),bio:getValue("bio"),
+country:getValue("country"),state:getValue("state"),city:getValue("city"),
+hometown:getValue("hometown"),birthday:getValue("birthday")||null,
+job_title:getValue("job_title"),workplace:getValue("workplace"),
+school:getValue("school"),education:getValue("education"),
+relationship_status:getValue("relationship_status"),hobbies:getValue("hobbies"),
+interests:getValue("interests"),favorite_things:getValue("favorite_things")
 };
-
-if(!profileData.display_name){
-showStatus("Please enter your full name.");
-return;
-}
-
+if(!profileData.display_name){showStatus("Please enter your full name.");return}
 showStatus("Saving your profile...");
-
-const {data,error} = await client
-.from("profiles")
-.update(profileData)
-.eq("id",currentUser.id)
-.select("id");
-
-if(error){
-showStatus("Could not save profile: " + error.message);
-return;
-}
-
-if(!data || data.length === 0){
-showStatus("No profile record was found for your account.");
-return;
-}
-
-const {error:authError} = await client.auth.updateUser({
-data:{display_name:profileData.display_name}
-});
-
-if(authError){
-showStatus("Profile saved, but account name update failed: " + authError.message);
-return;
-}
-
-const {data:sessionData} = await client.auth.getSession();
-currentUser = sessionData.session?.user || currentUser;
-currentProfile = {...currentProfile,...profileData};
-
-document.getElementById("welcome").textContent = "Welcome, " + profileData.display_name + "!";
+const {data,error}=await client.from("profiles").update(profileData).eq("id",currentUser.id).select("id");
+if(error){showStatus("Could not save profile: "+error.message);return}
+if(!data||!data.length){showStatus("No profile record was found for your account.");return}
+const {error:authError}=await client.auth.updateUser({data:{display_name:profileData.display_name}});
+if(authError){showStatus("Profile saved, but account name update failed: "+authError.message);return}
+currentProfile={...currentProfile,...profileData};
+document.getElementById("welcome").textContent="Welcome, "+profileData.display_name+"!";
 displayProfile(currentProfile);
 document.getElementById("profileForm").classList.add("hidden");
-
 showStatus("Your profile has been updated successfully!");
 await loadPosts();
 await loadVideos();
 });
 
-/* POST LIKES */
 async function toggleLike(postId,alreadyLiked){
-if(!currentUser){
-showStatus("Please log in to like posts.");
-return;
-}
-
-let result;
-if(alreadyLiked){
-result = await client.from("likes").delete()
-.eq("post_id",postId).eq("user_id",currentUser.id);
-}else{
-result = await client.from("likes").insert({
-post_id:postId,user_id:currentUser.id
-});
-}
-
-if(result.error){
-showStatus("Like error: " + result.error.message);
-return;
-}
-
-showStatus(alreadyLiked ? "Like removed." : "You liked this post!");
+if(!currentUser){showStatus("Please log in to like posts.");return}
+const result=alreadyLiked
+?await client.from("likes").delete().eq("post_id",postId).eq("user_id",currentUser.id)
+:await client.from("likes").insert({post_id:postId,user_id:currentUser.id});
+if(result.error){showStatus("Like error: "+result.error.message);return}
 await loadPosts();
 }
 
-/* POST COMMENTS */
 async function submitComment(postId,input){
-if(!currentUser){
-showStatus("Please log in to comment.");
-return;
-}
-
-const content = input.value.trim();
-if(!content){
-showStatus("Write a comment first.");
-return;
-}
-
-const {error} = await client.from("comments").insert({
-post_id:postId,user_id:currentUser.id,content
-});
-
-if(error){
-showStatus("Comment error: " + error.message);
-return;
-}
-
+if(!currentUser){showStatus("Please log in to comment.");return}
+const content=input.value.trim();
+if(!content){showStatus("Write a comment first.");return}
+const {error}=await client.from("comments").insert({post_id:postId,user_id:currentUser.id,content});
+if(error){showStatus("Comment error: "+error.message);return}
 showStatus("Your comment has been posted!");
 await loadPosts();
 }
 
-/* LOAD COMMUNITY POSTS */
 async function loadPosts(){
-postsBox.textContent = "Loading posts...";
-
-const {data,error} = await client
-.from("posts")
-.select("id,user_id,content,created_at")
-.order("created_at",{ascending:false});
-
-if(error){
-postsBox.textContent = "Could not load posts: " + error.message;
-return;
-}
-
+postsBox.textContent="Loading posts...";
+const {data,error}=await client.from("posts").select("id,user_id,content,created_at").order("created_at",{ascending:false});
+if(error){postsBox.textContent="Could not load posts: "+error.message;return}
 postsBox.replaceChildren();
-
-if(!data || data.length === 0){
-postsBox.textContent = "No posts yet. Be the first to share something!";
-return;
-}
-
-const postIds = data.map(post=>post.id);
-const userIds = [...new Set(data.map(post=>post.user_id).filter(Boolean))];
-
-let likes = [];
-let comments = [];
-
+if(!data||!data.length){postsBox.textContent="No posts yet. Be the first to share something!";return}
+const postIds=data.map(p=>p.id);
+let likes=[],comments=[];
 if(currentUser){
-const {data:likeData,error:likesError} = await client
-.from("likes").select("post_id,user_id").in("post_id",postIds);
-if(likesError){
-postsBox.textContent = "Could not load likes: " + likesError.message;
-return;
+const l=await client.from("likes").select("post_id,user_id").in("post_id",postIds);
+if(l.error){postsBox.textContent="Could not load likes: "+l.error.message;return}
+likes=l.data||[];
+const c=await client.from("comments").select("id,post_id,user_id,content,created_at").in("post_id",postIds).order("created_at");
+if(c.error){postsBox.textContent="Could not load comments: "+c.error.message;return}
+comments=c.data||[];
 }
-likes = likeData || [];
-
-const {data:commentData,error:commentsError} = await client
-.from("comments")
-.select("id,post_id,user_id,content,created_at")
-.in("post_id",postIds)
-.order("created_at",{ascending:true});
-
-if(commentsError){
-postsBox.textContent = "Could not load comments: " + commentsError.message;
-return;
+const ids=[...new Set([...data.map(p=>p.user_id),...comments.map(c=>c.user_id)].filter(Boolean))];
+const profileMap=new Map();
+if(ids.length){
+const p=await client.from("profiles").select("id,display_name,avatar_url").in("id",ids);
+if(p.error){postsBox.textContent="Could not load profiles: "+p.error.message;return}
+(p.data||[]).forEach(x=>profileMap.set(x.id,x));
 }
-comments = commentData || [];
-}
-
-const allUserIds = [...new Set([
-...userIds,...comments.map(comment=>comment.user_id)
-].filter(Boolean))];
-
-const profileMap = new Map();
-
-if(allUserIds.length){
-const {data:profiles,error:profileError} = await client
-.from("profiles")
-.select("id,display_name,avatar_url")
-.in("id",allUserIds);
-
-if(profileError){
-postsBox.textContent = "Could not load member profiles: " + profileError.message;
-return;
-}
-for(const profile of (profiles || [])){
-profileMap.set(profile.id,profile);
-}
-}
-
-const likeCounts = new Map();
-const likedPosts = new Set();
-const commentMap = new Map();
-
-for(const like of likes){
-likeCounts.set(like.post_id,(likeCounts.get(like.post_id)||0)+1);
-if(currentUser && like.user_id === currentUser.id){
-likedPosts.add(like.post_id);
-}
-}
-
-for(const comment of comments){
-if(!commentMap.has(comment.post_id)){
-commentMap.set(comment.post_id,[]);
-}
-commentMap.get(comment.post_id).push(comment);
-}
-
 for(const post of data){
-const profile = profileMap.get(post.user_id);
-const article = document.createElement("article");
-article.className = "post";
-
-const authorRow = document.createElement("div");
-authorRow.className = "author-row";
-
-const avatar = document.createElement("img");
-avatar.className = "avatar profile-clickable";
-avatar.alt = "Profile picture";
-avatar.src = profile?.avatar_url || "data:image/svg+xml," + encodeURIComponent(
-'<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46"><rect width="100%" height="100%" fill="#e5e7eb"/><circle cx="23" cy="17" r="9" fill="#9ca3af"/><path d="M7 45c1-12 8-17 16-17s15 5 16 17" fill="#9ca3af"/></svg>'
-);
-
-const authorName = document.createElement("span");
-authorName.className = "author-name profile-clickable";
-authorName.textContent = profile?.display_name || (post.user_id === currentUser?.id ? "You" : "FRIENDLY MEET member");
-
+const profile=profileMap.get(post.user_id);
+const article=document.createElement("article");
+article.className="post";
+const row=document.createElement("div");
+row.className="author-row";
+const avatar=document.createElement("img");
+avatar.className="avatar profile-clickable";
+avatar.alt="Profile picture";
+if(profile?.avatar_url)avatar.src=profile.avatar_url;
+const name=document.createElement("span");
+name.className="author-name profile-clickable";
+name.textContent=profile?.display_name||(post.user_id===currentUser?.id?"You":"FRIENDLY MEET member");
 avatar.addEventListener("click",()=>openMemberProfile(post.user_id));
-authorName.addEventListener("click",()=>openMemberProfile(post.user_id));
-authorRow.append(avatar,authorName);
-
-const content = document.createElement("p");
-content.textContent = post.content;
-
-const date = document.createElement("small");
-date.textContent = new Date(post.created_at).toLocaleString();
-
-const alreadyLiked = likedPosts.has(post.id);
-const likeButton = document.createElement("button");
-likeButton.className = "like-button" + (alreadyLiked ? " liked" : "");
-likeButton.textContent = alreadyLiked ? "Unlike" : "Like";
-
-const likeCount = document.createElement("span");
-likeCount.textContent = " " + (likeCounts.get(post.id)||0) + " Likes";
-likeButton.addEventListener("click",()=>toggleLike(post.id,alreadyLiked));
-
-article.append(authorRow,content,date,document.createElement("br"),likeButton,likeCount);
-
-const commentArea = document.createElement("div");
-commentArea.className = "comment-area";
-
-const commentHeading = document.createElement("div");
-commentHeading.className = "comment-heading";
-const postComments = commentMap.get(post.id) || [];
-commentHeading.textContent = "Comments (" + postComments.length + ")";
-commentArea.append(commentHeading);
-
-for(const comment of postComments){
-const commentProfile = profileMap.get(comment.user_id);
-const commentItem = document.createElement("div");
-commentItem.className = "comment-item";
-
-const commentName = document.createElement("div");
-commentName.className = "comment-name profile-clickable";
-commentName.textContent = commentProfile?.display_name || "FRIENDLY MEET member";
-commentName.addEventListener("click",()=>openMemberProfile(comment.user_id));
-
-const commentText = document.createElement("p");
-commentText.textContent = comment.content;
-
-const commentDate = document.createElement("small");
-commentDate.textContent = new Date(comment.created_at).toLocaleString();
-
-commentItem.append(commentName,commentText,commentDate);
-commentArea.append(commentItem);
-}
-
+name.addEventListener("click",()=>openMemberProfile(post.user_id));
+row.append(avatar,name);
+const content=document.createElement("p");
+content.textContent=post.content;
+const date=document.createElement("small");
+date.textContent=new Date(post.created_at).toLocaleString();
+const postLikes=likes.filter(x=>x.post_id===post.id);
+const liked=postLikes.some(x=>x.user_id===currentUser?.id);
+const likeButton=document.createElement("button");
+likeButton.className="like-button"+(liked?" liked":"");
+likeButton.textContent=liked?"Unlike":"Like";
+likeButton.addEventListener("click",()=>toggleLike(post.id,liked));
+const count=document.createElement("span");
+count.textContent=" "+postLikes.length+" Likes";
+article.append(row,content,date,document.createElement("br"),likeButton,count);
+const area=document.createElement("div");
+area.className="comment-area";
+const postComments=comments.filter(x=>x.post_id===post.id);
+const heading=document.createElement("div");
+heading.className="comment-heading";
+heading.textContent="Comments ("+postComments.length+")";
+area.append(heading);
+postComments.forEach(comment=>{
+const item=document.createElement("div");
+item.className="comment-item";
+const commentProfile=profileMap.get(comment.user_id);
+const n=document.createElement("div");
+n.className="comment-name profile-clickable";
+n.textContent=commentProfile?.display_name||"FRIENDLY MEET member";
+n.addEventListener("click",()=>openMemberProfile(comment.user_id));
+const t=document.createElement("p");
+t.textContent=comment.content;
+const d=document.createElement("small");
+d.textContent=new Date(comment.created_at).toLocaleString();
+item.append(n,t,d);
+area.append(item);
+});
 if(currentUser){
-const commentInput = document.createElement("textarea");
-commentInput.className = "comment-input";
-commentInput.maxLength = 1000;
-commentInput.placeholder = "Write a comment...";
-
-const commentButton = document.createElement("button");
-commentButton.textContent = "Post Comment";
-commentButton.addEventListener("click",()=>submitComment(post.id,commentInput));
-commentArea.append(commentInput,commentButton);
+const input=document.createElement("textarea");
+input.className="comment-input";
+input.maxLength=1000;
+input.placeholder="Write a comment...";
+const send=document.createElement("button");
+send.textContent="Post Comment";
+send.addEventListener("click",()=>submitComment(post.id,input));
+area.append(input,send);
 }else{
-const loginMessage = document.createElement("small");
-loginMessage.textContent = "Log in to view and write comments.";
-commentArea.append(loginMessage);
+const note=document.createElement("small");
+note.textContent="Log in to view and write comments.";
+area.append(note);
 }
-
-article.append(commentArea);
+article.append(area);
 postsBox.append(article);
 }
 }
 
-/* UPLOAD VIDEO */
+/* VIDEO UPLOAD */
 document.getElementById("uploadVideo").addEventListener("click",async()=>{
-if(!currentUser){
-showStatus("Please log in first.");
-return;
-}
-
-const file = document.getElementById("videoFile").files[0];
-const caption = getValue("videoCaption");
-
-if(!file){
-showStatus("Choose a video first.");
-return;
-}
-
-if(!file.type.startsWith("video/")){
-showStatus("Please choose a valid video file.");
-return;
-}
-
-if(file.size > 50 * 1024 * 1024){
-showStatus("Your video is too large. Maximum size is 50 MB.");
-return;
-}
-
-const button = document.getElementById("uploadVideo");
-button.disabled = true;
-button.textContent = "Uploading...";
+if(!currentUser){showStatus("Please log in first.");return}
+const file=document.getElementById("videoFile").files[0];
+const caption=getValue("videoCaption");
+if(!file){showStatus("Choose a video first.");return}
+if(!file.type.startsWith("video/")){showStatus("Please choose a valid video.");return}
+if(file.size>50*1024*1024){showStatus("Maximum video size is 50 MB.");return}
+const button=document.getElementById("uploadVideo");
+button.disabled=true;
+button.textContent="Uploading...";
 showStatus("Uploading your video. Please wait...");
-
-const extension = file.name.split(".").pop().toLowerCase();
-const filePath = currentUser.id + "/" + Date.now() + "." + extension;
-
-const {error:uploadError} = await client.storage
-.from("videos")
-.upload(filePath,file,{
-upsert:false,
-contentType:file.type
-});
-
-if(uploadError){
-showStatus("Video upload failed: " + uploadError.message);
-button.disabled = false;
-button.textContent = "Upload Video";
+const extension=file.name.split(".").pop().toLowerCase();
+const path=currentUser.id+"/"+Date.now()+"."+extension;
+const upload=await client.storage.from("videos").upload(path,file,{upsert:false,contentType:file.type});
+if(upload.error){
+showStatus("Video upload failed: "+upload.error.message);
+button.disabled=false;
+button.textContent="Upload Video";
 return;
 }
-
-const {data:urlData} = client.storage.from("videos").getPublicUrl(filePath);
-const videoUrl = urlData.publicUrl;
-
-const {error:recordError} = await client.from("videos").insert({
-user_id:currentUser.id,
-video_url:videoUrl,
-caption:caption
-});
-
-if(recordError){
-showStatus("Video uploaded, but feed saving failed: " + recordError.message);
-button.disabled = false;
-button.textContent = "Upload Video";
-return;
-}
-
-document.getElementById("videoFile").value = "";
-document.getElementById("videoCaption").value = "";
-button.disabled = false;
-button.textContent = "Upload Video";
-
+const url=client.storage.from("videos").getPublicUrl(path).data.publicUrl;
+const {error}=await client.from("videos").insert({user_id:currentUser.id,video_url:url,caption});
+button.disabled=false;
+button.textContent="Upload Video";
+if(error){showStatus("Video uploaded, but feed saving failed: "+error.message);return}
+document.getElementById("videoFile").value="";
+document.getElementById("videoCaption").value="";
 showStatus("Your video has been shared successfully!");
 await loadVideos();
 });
 
-/* VIDEO LIKES */
-async function toggleVideoLike(videoId,alreadyLiked){
-if(!currentUser){
-showStatus("Please log in to like videos.");
-return;
-}
-
-let result;
-
-if(alreadyLiked){
-result = await client.from("video_likes")
-.delete()
-.eq("video_id",videoId)
-.eq("user_id",currentUser.id);
-}else{
-result = await client.from("video_likes")
-.insert({video_id:videoId,user_id:currentUser.id});
-}
-
-if(result.error){
-showStatus("Video like error: " + result.error.message);
-return;
-}
-
+async function toggleVideoLike(videoId,liked){
+if(!currentUser){showStatus("Please log in to like videos.");return}
+const result=liked
+?await client.from("video_likes").delete().eq("video_id",videoId).eq("user_id",currentUser.id)
+:await client.from("video_likes").insert({video_id:videoId,user_id:currentUser.id});
+if(result.error){showStatus("Video like error: "+result.error.message);return}
 await loadVideos();
 }
 
-/* VIDEO COMMENTS */
 async function submitVideoComment(videoId,input){
-if(!currentUser){
-showStatus("Please log in to comment on videos.");
-return;
-}
-
-const content = input.value.trim();
-if(!content){
-showStatus("Write a comment first.");
-return;
-}
-
-const {error} = await client.from("video_comments").insert({
-video_id:videoId,
-user_id:currentUser.id,
-content:content
-});
-
-if(error){
-showStatus("Video comment error: " + error.message);
-return;
-}
-
+if(!currentUser){showStatus("Please log in to comment.");return}
+const content=input.value.trim();
+if(!content){showStatus("Write a comment first.");return}
+const {error}=await client.from("video_comments").insert({video_id:videoId,user_id:currentUser.id,content});
+if(error){showStatus("Video comment error: "+error.message);return}
 showStatus("Your video comment has been posted!");
 await loadVideos();
 }
 
-/* LOAD VIDEO FEED */
 async function loadVideos(){
-if(videoObserver){
-videoObserver.disconnect();
-videoObserver = null;
-}
-
+if(videoObserver){videoObserver.disconnect();videoObserver=null}
+videoFeed.textContent="Loading videos...";
+const result=await client.from("videos").select("id,user_id,video_url,caption,created_at").order("created_at",{ascending:false});
+if(result.error){videoFeed.textContent="Could not load videos: "+result.error.message;return}
 videoFeed.replaceChildren();
-
-const loading = document.createElement("div");
-loading.className = "video-feed-empty";
-loading.textContent = "Loading videos...";
-videoFeed.append(loading);
-
-const {data:videos,error} = await client
-.from("videos")
-.select("id,user_id,video_url,caption,created_at")
-.order("created_at",{ascending:false});
-
-if(error){
-videoFeed.textContent = "Could not load videos: " + error.message;
-return;
-}
-
-videoFeed.replaceChildren();
-
-if(!videos || videos.length === 0){
-const empty = document.createElement("div");
-empty.className = "video-feed-empty";
-empty.textContent = "No videos yet. Be the first member to upload a video!";
-videoFeed.append(empty);
-return;
-}
-
-const videoIds = videos.map(video=>video.id);
-const userIds = [...new Set(videos.map(video=>video.user_id).filter(Boolean))];
-
-let likes = [];
-let comments = [];
-
+const videos=result.data||[];
+if(!videos.length){videoFeed.textContent="No videos yet. Be the first to upload a video!";return}
+const ids=videos.map(v=>v.id);
+const userIds=[...new Set(videos.map(v=>v.user_id))];
+let likes=[],comments=[];
 if(currentUser){
-const {data:likeData,error:likeError} = await client
-.from("video_likes")
-.select("video_id,user_id")
-.in("video_id",videoIds);
-
-if(likeError){
-videoFeed.textContent = "Could not load video likes: " + likeError.message;
-return;
+const l=await client.from("video_likes").select("video_id,user_id").in("video_id",ids);
+if(l.error){videoFeed.textContent=l.error.message;return}
+likes=l.data||[];
+const c=await client.from("video_comments").select("id,video_id,user_id,content,created_at").in("video_id",ids).order("created_at");
+if(c.error){videoFeed.textContent=c.error.message;return}
+comments=c.data||[];
 }
-likes = likeData || [];
-
-const {data:commentData,error:commentError} = await client
-.from("video_comments")
-.select("id,video_id,user_id,content,created_at")
-.in("video_id",videoIds)
-.order("created_at",{ascending:true});
-
-if(commentError){
-videoFeed.textContent = "Could not load video comments: " + commentError.message;
-return;
-}
-comments = commentData || [];
-}
-
-const allUserIds = [...new Set([
-...userIds,
-...comments.map(comment=>comment.user_id)
-].filter(Boolean))];
-
-const profileMap = new Map();
-
-if(allUserIds.length){
-const {data:profiles,error:profileError} = await client
-.from("profiles")
-.select("id,display_name,avatar_url")
-.in("id",allUserIds);
-
-if(profileError){
-videoFeed.textContent = "Could not load video member profiles: " + profileError.message;
-return;
-}
-
-for(const profile of (profiles || [])){
-profileMap.set(profile.id,profile);
-}
-}
-
-const likeCounts = new Map();
-const likedVideos = new Set();
-const commentMap = new Map();
-
-for(const like of likes){
-likeCounts.set(like.video_id,(likeCounts.get(like.video_id)||0)+1);
-if(currentUser && like.user_id === currentUser.id){
-likedVideos.add(like.video_id);
-}
-}
-
-for(const comment of comments){
-if(!commentMap.has(comment.video_id)){
-commentMap.set(comment.video_id,[]);
-}
-commentMap.get(comment.video_id).push(comment);
-}
-
-for(const video of videos){
-const profile = profileMap.get(video.user_id);
-const card = document.createElement("article");
-card.className = "video-card";
-
-const authorRow = document.createElement("div");
-authorRow.className = "author-row";
-
-const avatar = document.createElement("img");
-avatar.className = "avatar profile-clickable";
-avatar.alt = "Member picture";
-if(profile?.avatar_url){
-avatar.src = profile.avatar_url;
-}
-
-const authorName = document.createElement("span");
-authorName.className = "author-name profile-clickable";
-authorName.textContent = profile?.display_name || "FRIENDLY MEET member";
-
+const allIds=[...new Set([...userIds,...comments.map(c=>c.user_id)])];
+const profiles=await client.from("profiles").select("id,display_name,avatar_url").in("id",allIds);
+if(profiles.error){videoFeed.textContent=profiles.error.message;return}
+const profileMap=new Map((profiles.data||[]).map(p=>[p.id,p]));
+videos.forEach(video=>{
+const card=document.createElement("article");
+card.className="video-card";
+const profile=profileMap.get(video.user_id);
+const row=document.createElement("div");
+row.className="author-row";
+const avatar=document.createElement("img");
+avatar.className="avatar profile-clickable";
+if(profile?.avatar_url)avatar.src=profile.avatar_url;
+const name=document.createElement("span");
+name.className="author-name profile-clickable";
+name.textContent=profile?.display_name||"FRIENDLY MEET member";
 avatar.addEventListener("click",()=>openMemberProfile(video.user_id));
-authorName.addEventListener("click",()=>openMemberProfile(video.user_id));
-
-authorRow.append(avatar,authorName);
-
-const player = document.createElement("video");
-player.src = video.video_url;
-player.controls = true;
-player.playsInline = true;
-player.loop = true;
-player.muted = true;
-player.autoplay = true;
-player.preload = "metadata";
-player.setAttribute("webkit-playsinline","true");
-
-const caption = document.createElement("p");
-caption.className = "video-caption";
-caption.textContent = video.caption || "";
-
-const date = document.createElement("div");
-date.className = "video-date";
-date.textContent = new Date(video.created_at).toLocaleString();
-
-const actions = document.createElement("div");
-actions.className = "video-actions";
-
-const alreadyLiked = likedVideos.has(video.id);
-const likeButton = document.createElement("button");
-likeButton.className = "like-button" + (alreadyLiked ? " liked" : "");
-likeButton.textContent = alreadyLiked ? "Unlike" : "Like";
-likeButton.addEventListener("click",()=>toggleVideoLike(video.id,alreadyLiked));
-
-const likeCount = document.createElement("span");
-likeCount.textContent = (likeCounts.get(video.id)||0) + " Likes";
-
-actions.append(likeButton,likeCount);
-
-card.append(authorRow,player,caption,date,actions);
-
-const commentArea = document.createElement("div");
-commentArea.className = "comment-area";
-
-const heading = document.createElement("div");
-heading.className = "comment-heading";
-const videoComments = commentMap.get(video.id) || [];
-heading.textContent = "Comments (" + videoComments.length + ")";
-commentArea.append(heading);
-
-for(const comment of videoComments){
-const commentProfile = profileMap.get(comment.user_id);
-const item = document.createElement("div");
-item.className = "comment-item";
-
-const name = document.createElement("div");
-name.className = "comment-name profile-clickable";
-name.textContent = commentProfile?.display_name || "FRIENDLY MEET member";
-name.addEventListener("click",()=>openMemberProfile(comment.user_id));
-
-const text = document.createElement("p");
-text.textContent = comment.content;
-
-const time = document.createElement("small");
-time.textContent = new Date(comment.created_at).toLocaleString();
-
-item.append(name,text,time);
-commentArea.append(item);
-}
-
+name.addEventListener("click",()=>openMemberProfile(video.user_id));
+row.append(avatar,name);
+const player=document.createElement("video");
+player.src=video.video_url;
+player.controls=true;
+player.playsInline=true;
+player.loop=true;
+player.muted=true;
+player.autoplay=true;
+player.preload="metadata";
+const caption=document.createElement("p");
+caption.className="video-caption";
+caption.textContent=video.caption||"";
+const date=document.createElement("div");
+date.className="video-date";
+date.textContent=new Date(video.created_at).toLocaleString();
+const actions=document.createElement("div");
+const videoLikes=likes.filter(x=>x.video_id===video.id);
+const liked=videoLikes.some(x=>x.user_id===currentUser?.id);
+const like=document.createElement("button");
+like.className="like-button"+(liked?" liked":"");
+like.textContent=liked?"Unlike":"Like";
+like.addEventListener("click",()=>toggleVideoLike(video.id,liked));
+const count=document.createElement("span");
+count.textContent=" "+videoLikes.length+" Likes";
+actions.append(like,count);
+card.append(row,player,caption,date,actions);
+const area=document.createElement("div");
+area.className="comment-area";
+const videoComments=comments.filter(c=>c.video_id===video.id);
+const heading=document.createElement("div");
+heading.className="comment-heading";
+heading.textContent="Comments ("+videoComments.length+")";
+area.append(heading);
+videoComments.forEach(comment=>{
+const item=document.createElement("div");
+item.className="comment-item";
+const n=document.createElement("div");
+n.className="comment-name profile-clickable";
+n.textContent=profileMap.get(comment.user_id)?.display_name||"Member";
+n.addEventListener("click",()=>openMemberProfile(comment.user_id));
+const t=document.createElement("p");
+t.textContent=comment.content;
+item.append(n,t);
+area.append(item);
+});
 if(currentUser){
-const input = document.createElement("textarea");
-input.className = "comment-input";
-input.maxLength = 1000;
-input.placeholder = "Write a comment...";
-
-const send = document.createElement("button");
-send.textContent = "Post Comment";
+const input=document.createElement("textarea");
+input.className="comment-input";
+input.placeholder="Write a comment...";
+input.maxLength=1000;
+const send=document.createElement("button");
+send.textContent="Post Comment";
 send.addEventListener("click",()=>submitVideoComment(video.id,input));
-
-commentArea.append(input,send);
-}else{
-const loginMessage = document.createElement("small");
-loginMessage.textContent = "Log in to like and comment on videos.";
-commentArea.append(loginMessage);
+area.append(input,send);
 }
-
-card.append(commentArea);
+card.append(area);
 videoFeed.append(card);
-}
-
-/* START AUTOMATIC VIDEO PLAYBACK */
+});
 startVideoAutoplay();
 }
 
-/* SIGN UP */
+/* ACCOUNT */
 document.getElementById("signup").addEventListener("click",async()=>{
-const name = document.getElementById("name").value.trim();
-const email = document.getElementById("email").value.trim();
-const password = document.getElementById("password").value;
-
-if(!name || !email || password.length < 6){
-showStatus("Enter your name, email and a password of at least 6 characters.");
-return;
-}
-
+const name=getValue("name"),email=getValue("email"),password=document.getElementById("password").value;
+if(!name||!email||password.length<6){showStatus("Enter your name, email and a password of at least 6 characters.");return}
 showStatus("Creating your account...");
-
-const {data,error} = await client.auth.signUp({
-email,password,options:{data:{display_name:name}}
+const {data,error}=await client.auth.signUp({email,password,options:{data:{display_name:name}}});
+if(error)showStatus(error.message);
+else if(data.session)await refreshAccount();
+else showStatus("Account created! Check your email and confirm your address before logging in.");
 });
 
-if(error){
-showStatus(error.message);
-}else if(data.session){
-await refreshAccount();
-}else{
-showStatus("Account created! Check your email and confirm your address before logging in.");
-}
-});
-
-/* LOG IN */
 document.getElementById("login").addEventListener("click",async()=>{
-const email = document.getElementById("email").value.trim();
-const password = document.getElementById("password").value;
-
-if(!email || !password){
-showStatus("Enter your email and password first.");
-return;
-}
-
+const email=getValue("email"),password=document.getElementById("password").value;
+if(!email||!password){showStatus("Enter your email and password first.");return}
 showStatus("Logging in...");
-
-const {error} = await client.auth.signInWithPassword({email,password});
-
-if(error){
-showStatus(error.message);
-}else{
-await refreshAccount();
-}
+const {error}=await client.auth.signInWithPassword({email,password});
+if(error)showStatus(error.message);
+else await refreshAccount();
 });
 
-/* LOG OUT */
 document.getElementById("logout").addEventListener("click",async()=>{
-const {error} = await client.auth.signOut();
-
-if(error){
-showStatus(error.message);
-}else{
+const {error}=await client.auth.signOut();
+if(error)showStatus(error.message);
+else{
+activeConversationUser=null;
+if(messageRefreshTimer)clearInterval(messageRefreshTimer);
 await refreshAccount();
 }
 });
 
-/* UPLOAD PROFILE PICTURE */
 document.getElementById("uploadAvatar").addEventListener("click",async()=>{
-if(!currentUser){
-showStatus("Please log in first.");
-return;
-}
-
-const file = document.getElementById("avatarFile").files[0];
-
-if(!file){
-showStatus("Please choose a picture first.");
-return;
-}
-
-if(!file.type.startsWith("image/") || file.size > 5*1024*1024){
-showStatus("Choose an image smaller than 5 MB.");
-return;
-}
-
+if(!currentUser){showStatus("Please log in first.");return}
+const file=document.getElementById("avatarFile").files[0];
+if(!file){showStatus("Please choose a picture first.");return}
+if(!file.type.startsWith("image/")||file.size>5*1024*1024){showStatus("Choose an image smaller than 5 MB.");return}
 showStatus("Uploading your picture...");
-
-const extension = file.name.split(".").pop().toLowerCase();
-const filePath = currentUser.id + "/avatar." + extension;
-
-const {error:uploadError} = await client.storage.from("avatars")
-.upload(filePath,file,{upsert:true,contentType:file.type});
-
-if(uploadError){
-showStatus("Upload failed: " + uploadError.message);
-return;
-}
-
-const {data} = client.storage.from("avatars").getPublicUrl(filePath);
-const avatarUrl = data.publicUrl + "?updated=" + Date.now();
-
-const {error:authError} = await client.auth.updateUser({
-data:{avatar_url:avatarUrl}
-});
-
-if(authError){
-showStatus("Picture uploaded, but account update failed: " + authError.message);
-return;
-}
-
-const {error:profileError} = await client.from("profiles")
-.update({avatar_url:avatarUrl}).eq("id",currentUser.id);
-
-if(profileError){
-showStatus("Picture uploaded, but profile table update failed: " + profileError.message);
-return;
-}
-
-const {data:sessionData} = await client.auth.getSession();
-currentUser = sessionData.session?.user || currentUser;
-
-avatarPreview.src = avatarUrl;
+const ext=file.name.split(".").pop().toLowerCase();
+const path=currentUser.id+"/avatar."+ext;
+const upload=await client.storage.from("avatars").upload(path,file,{upsert:true,contentType:file.type});
+if(upload.error){showStatus("Upload failed: "+upload.error.message);return}
+const url=client.storage.from("avatars").getPublicUrl(path).data.publicUrl+"?updated="+Date.now();
+const auth=await client.auth.updateUser({data:{avatar_url:url}});
+if(auth.error){showStatus(auth.error.message);return}
+const profile=await client.from("profiles").update({avatar_url:url}).eq("id",currentUser.id);
+if(profile.error){showStatus(profile.error.message);return}
+avatarPreview.src=url;
 avatarPreview.classList.remove("hidden");
-
 showStatus("Your profile picture has been uploaded successfully!");
-
 await loadMyProfile();
 await loadPosts();
 await loadVideos();
 });
 
-/* SHARE POST */
 document.getElementById("publish").addEventListener("click",async()=>{
-const content = document.getElementById("postText").value.trim();
-
-if(!currentUser){
-showStatus("Please log in first.");
-return;
-}
-
-if(!content){
-showStatus("Write something before sharing.");
-return;
-}
-
+if(!currentUser){showStatus("Please log in first.");return}
+const content=getValue("postText");
+if(!content){showStatus("Write something before sharing.");return}
 showStatus("Sharing your post...");
-
-const {error} = await client.from("posts").insert({
-user_id:currentUser.id,content
-});
-
-if(error){
-showStatus(error.message);
-}else{
-document.getElementById("postText").value = "";
+const {error}=await client.from("posts").insert({user_id:currentUser.id,content});
+if(error)showStatus(error.message);
+else{
+document.getElementById("postText").value="";
 showStatus("Your post has been shared!");
 await loadPosts();
 }
 });
 
-/* AUTH SESSION */
+/* MEMBER DIRECTORY */
+async function loadMembers(){
+const box=document.getElementById("membersList");
+if(!currentUser){box.textContent="Please log in to discover members.";return}
+box.textContent="Loading members...";
+const {data,error}=await client.from("profiles").select("id,display_name,avatar_url").neq("id",currentUser.id).order("display_name");
+if(error){box.textContent="Could not load members: "+error.message;return}
+box.replaceChildren();
+if(!data||!data.length){box.textContent="No other members found yet.";return}
+data.forEach(member=>{
+const row=document.createElement("div");
+row.className="member-row";
+const avatar=document.createElement("img");
+avatar.className="avatar";
+if(member.avatar_url)avatar.src=member.avatar_url;
+const info=document.createElement("div");
+const name=document.createElement("strong");
+name.textContent=member.display_name||"FRIENDLY MEET member";
+const hint=document.createElement("div");
+hint.className="section-note";
+hint.textContent="View profile or send a message";
+info.append(name,hint);
+row.append(avatar,info);
+row.addEventListener("click",()=>openMemberProfile(member.id));
+box.append(row);
+});
+}
+document.getElementById("refreshMembers").addEventListener("click",loadMembers);
+
+/* PRIVATE MESSAGES */
+async function loadConversationList(){
+const box=document.getElementById("messageStatus");
+if(!currentUser){box.textContent="Please log in to use private messages.";return}
+box.textContent="Choose a member from the Friends tab to start a conversation.";
+}
+
+async function openChat(userId,displayName){
+if(!currentUser){showStatus("Please log in first.");return}
+if(userId===currentUser.id)return;
+activeConversationUser=userId;
+document.getElementById("chatTitle").textContent="Chat with "+displayName;
+document.getElementById("chatPanel").classList.remove("hidden");
+document.getElementById("messageStatus").textContent="Private conversation";
+await loadMessages();
+if(messageRefreshTimer)clearInterval(messageRefreshTimer);
+messageRefreshTimer=setInterval(()=>{
+if(activeConversationUser)loadMessages();
+},6000);
+}
+
+async function loadMessages(){
+if(!currentUser||!activeConversationUser)return;
+const box=document.getElementById("chatMessages");
+const {data,error}=await client.from("messages")
+.select("id,sender_id,recipient_id,content,created_at")
+.or("sender_id.eq."+currentUser.id+",recipient_id.eq."+currentUser.id)
+.order("created_at",{ascending:true});
+if(error){box.textContent="Could not load messages: "+error.message;return}
+box.replaceChildren();
+const messages=(data||[]).filter(m=>
+(m.sender_id===currentUser.id&&m.recipient_id===activeConversationUser)||
+(m.sender_id===activeConversationUser&&m.recipient_id===currentUser.id)
+);
+if(!messages.length){
+box.textContent="No messages yet. Say hello!";
+return;
+}
+messages.forEach(message=>{
+const bubble=document.createElement("div");
+bubble.className="message-bubble"+(message.sender_id===currentUser.id?" mine":"");
+const content=document.createElement("div");
+content.textContent=message.content;
+const time=document.createElement("div");
+time.className="message-time";
+time.textContent=new Date(message.created_at).toLocaleString();
+bubble.append(content,time);
+box.append(bubble);
+});
+box.scrollTop=box.scrollHeight;
+}
+
+document.getElementById("sendMessage").addEventListener("click",async()=>{
+if(!currentUser||!activeConversationUser)return;
+const content=getValue("messageInput");
+if(!content){showStatus("Write a message first.");return}
+const {error}=await client.from("messages").insert({
+sender_id:currentUser.id,
+recipient_id:activeConversationUser,
+content
+});
+if(error){showStatus("Message could not be sent: "+error.message);return}
+document.getElementById("messageInput").value="";
+await loadMessages();
+showStatus("Private message sent.");
+});
+
+document.getElementById("closeChat").addEventListener("click",()=>{
+activeConversationUser=null;
+document.getElementById("chatPanel").classList.add("hidden");
+if(messageRefreshTimer)clearInterval(messageRefreshTimer);
+});
+
+/* BUSINESS PROMOTIONS */
+async function loadBusinesses(){
+const box=document.getElementById("businessList");
+box.textContent="Loading businesses...";
+const {data,error}=await client.from("businesses")
+.select("id,user_id,business_name,category,description,phone,whatsapp,image_url,created_at")
+.order("created_at",{ascending:false});
+if(error){box.textContent="Could not load businesses: "+error.message;return}
+box.replaceChildren();
+if(!data||!data.length){box.textContent="No businesses have been promoted yet. Be the first!";return}
+const ids=[...new Set(data.map(b=>b.user_id))];
+const result=await client.from("profiles").select("id,display_name").in("id",ids);
+const names=new Map((result.data||[]).map(p=>[p.id,p.display_name]));
+data.forEach(business=>{
+const card=document.createElement("article");
+card.className="business-card";
+if(business.image_url){
+const image=document.createElement("img");
+image.src=business.image_url;
+image.alt=business.business_name;
+card.append(image);
+}
+const title=document.createElement("h3");
+title.textContent=business.business_name;
+const category=document.createElement("div");
+category.className="business-meta";
+category.textContent=business.category||"Business";
+const description=document.createElement("p");
+description.textContent=business.description||"";
+const owner=document.createElement("small");
+owner.textContent="Posted by "+(names.get(business.user_id)||"FRIENDLY MEET member");
+card.append(title,category,description,owner);
+if(business.phone){
+const phone=document.createElement("p");
+phone.textContent="Phone: "+business.phone;
+card.append(phone);
+}
+if(business.whatsapp){
+const wa=document.createElement("a");
+wa.href="https://wa.me/"+business.whatsapp.replace(/\D/g,"");
+wa.target="_blank";
+wa.rel="noopener";
+wa.textContent="Contact on WhatsApp";
+card.append(document.createElement("br"),wa);
+}
+box.append(card);
+});
+}
+
+document.getElementById("publishBusiness").addEventListener("click",async()=>{
+if(!currentUser){showStatus("Please log in to promote your business.");return}
+const business_name=getValue("businessName");
+const category=getValue("businessCategory");
+const description=getValue("businessDescription");
+const phone=getValue("businessPhone");
+const whatsapp=getValue("businessWhatsapp");
+if(!business_name||!description){showStatus("Enter your business name and description.");return}
+showStatus("Publishing your business...");
+const {error}=await client.from("businesses").insert({
+user_id:currentUser.id,
+business_name,
+category,
+description,
+phone,
+whatsapp
+});
+if(error){showStatus("Business could not be published: "+error.message);return}
+["businessName","businessCategory","businessDescription","businessPhone","businessWhatsapp"].forEach(id=>setValue(id,""));
+showStatus("Your business promotion has been published!");
+await loadBusinesses();
+});
+
 client.auth.onAuthStateChange(()=>{
 setTimeout(refreshAccount,0);
 });
-
 refreshAccount();
 </script>
 </body>
