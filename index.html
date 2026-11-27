@@ -1351,6 +1351,121 @@ $('globalSearch').onkeydown = e => {
     showPage('friendsPage');
     loadMembers(getValue('globalSearch'));
   }
+/* FRIENDLY MEET - COMPLETE TYPING INDICATOR FIX */
+
+var fmTypingUserId = null;
+var fmTypingTimer = null;
+var fmTypingReceiver = null;
+
+const fmTypingDisplay = document.createElement('div');
+fmTypingDisplay.id = 'fmTypingDisplay';
+fmTypingDisplay.style.cssText =
+  'display:none;color:#2457d6;font-size:13px;padding:6px 10px;font-weight:600;';
+
+$('chatTitle').insertAdjacentElement('afterend', fmTypingDisplay);
+
+function fmShowTyping(message) {
+  fmTypingDisplay.textContent = message;
+  fmTypingDisplay.style.display = message ? 'block' : 'none';
+}
+
+async function fmPublishTyping() {
+  if (!currentUser || !activeConversationUser) return;
+
+  fmTypingUserId = currentUser.id;
+  fmTypingReceiver = activeConversationUser;
+
+  const input = $('messageInput');
+
+  if (!input.value.trim()) {
+    await fmClearTyping();
+    return;
+  }
+
+  const { error } = await client
+    .from('typing_status')
+    .upsert({
+      user_id: fmTypingUserId,
+      receiver_id: fmTypingReceiver,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'user_id,receiver_id'
+    });
+
+  if (error) {
+    console.error('Could not publish typing status:', error.message);
+  }
+
+  clearTimeout(fmTypingTimer);
+
+  fmTypingTimer = setTimeout(fmClearTyping, 3000);
+}
+
+async function fmClearTyping() {
+  clearTimeout(fmTypingTimer);
+
+  if (!currentUser || !fmTypingReceiver) return;
+
+  const { error } = await client
+    .from('typing_status')
+    .delete()
+    .eq('user_id', currentUser.id)
+    .eq('receiver_id', fmTypingReceiver);
+
+  if (error) console.error(error.message);
+}
+
+async function fmReadTyping() {
+  if (!currentUser || !activeConversationUser) {
+    fmShowTyping('');
+    return;
+  }
+
+  const { data, error } = await client
+    .from('typing_status')
+    .select('updated_at')
+    .eq('user_id', activeConversationUser)
+    .eq('receiver_id', currentUser.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Could not read typing status:', error.message);
+    return;
+  }
+
+  const isTyping = data &&
+    Date.now() - new Date(data.updated_at).getTime() < 5000;
+
+  fmShowTyping(isTyping ? 'Typing...' : '');
+}
+
+$('messageInput').addEventListener('focus', () => {
+  if (currentUser) fmTypingUserId = currentUser.id;
+});
+
+$('messageInput').addEventListener('input', fmPublishTyping);
+
+$('messageInput').addEventListener('blur', fmClearTyping);
+
+$('sendMessage').addEventListener('click', () => {
+  setTimeout(fmClearTyping, 300);
+});
+
+$('closeChat').addEventListener('click', () => {
+  fmClearTyping();
+  fmShowTyping('');
+  fmTypingReceiver = null;
+});
+
+setInterval(() => {
+  if (activeConversationUser && currentUser) {
+    fmReadTyping();
+  } else {
+    fmShowTyping('');
+  }
+}, 1500);
+
+console.log('FRIENDLY MEET typing indicator initialized');
 };
 </script>
 </body>
