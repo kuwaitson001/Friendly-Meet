@@ -52,9 +52,10 @@ button.secondary{background:#555}
 .video-card .like-button.liked{background:#2457d6;color:white}
 .video-feed-empty{background:#f7f8fc;padding:20px;border-radius:10px;text-align:center;color:#555}
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #ddd;display:flex;justify-content:space-around;z-index:900;padding:7px 2px calc(7px + env(safe-area-inset-bottom));box-shadow:0 -2px 8px #00000010}
-.bottom-nav button{background:transparent;color:#555;margin:0;padding:7px 3px;flex:1;font-size:11px;border-radius:6px}
+.bottom-nav button{background:transparent;color:#555;margin:0;padding:7px 3px;flex:1;font-size:11px;border-radius:6px;position:relative}
 .bottom-nav button.active{color:#2457d6;font-weight:bold;background:#eef2ff}
 .nav-icon{display:block;font-size:19px;margin-bottom:3px}
+.notification-badge{position:absolute;top:0;left:calc(50% + 16px);background:#e53935;color:white;font-size:10px;font-weight:bold;min-width:17px;height:17px;padding:2px 5px;border-radius:20px}
 .page{display:none}
 .page.active{display:block}
 .message-list{display:flex;flex-direction:column;gap:8px}
@@ -66,6 +67,16 @@ button.secondary{background:#555}
 .message-bubble{padding:10px 12px;border-radius:12px;background:#e5e7eb;max-width:85%;overflow-wrap:anywhere;align-self:flex-start}
 .message-bubble.mine{background:#2457d6;color:white;align-self:flex-end}
 .message-time{font-size:10px;opacity:.7;margin-top:4px}
+.message-ticks{font-size:13px;margin-left:5px;color:#c5ceda;font-weight:bold}
+.message-ticks.read{color:#53b7ff}
+.conversation-row{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #eee;cursor:pointer;border-radius:8px}
+.conversation-row:hover{background:#f5f7fb}
+.conversation-row .avatar{width:48px;height:48px;flex-shrink:0}
+.conversation-info{flex:1;min-width:0}
+.conversation-name{font-weight:bold}
+.conversation-preview{font-size:13px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:5px}
+.conversation-time{font-size:11px;color:#888;white-space:nowrap}
+.unread-dot{background:#2457d6;color:white;border-radius:50%;min-width:19px;height:19px;text-align:center;font-size:11px;padding:3px}
 .business-card{border:1px solid #eee;border-radius:10px;padding:13px;margin:12px 0;overflow-wrap:anywhere}
 .business-card img{width:100%;max-height:240px;object-fit:cover;border-radius:8px}
 .business-meta{font-size:13px;color:#666}
@@ -205,14 +216,15 @@ button.secondary{background:#555}
 <section id="messagesPage" class="page">
 <section class="card">
 <h2>Private Messages</h2>
-<p class="section-note">Choose a member from Friends to start a private conversation.</p>
+<p class="section-note">Your private conversations appear below.</p>
 <div id="messageStatus" class="empty-note">Your conversations will appear here.</div>
+<div id="conversationList" class="message-list"></div>
 <div id="chatPanel" class="chat-box hidden">
 <h3 id="chatTitle">Conversation</h3>
 <div id="chatMessages" class="chat-messages"></div>
 <textarea id="messageInput" maxlength="2000" placeholder="Write a private message..."></textarea>
 <button id="sendMessage">Send Message</button>
-<button id="closeChat" class="secondary">Close Conversation</button>
+<button id="closeChat" class="secondary">Back to Inbox</button>
 </div>
 </section>
 </section>
@@ -239,7 +251,7 @@ button.secondary{background:#555}
 <button class="active" data-page="homePage"><span class="nav-icon">⌂</span>Home</button>
 <button data-page="videosPage"><span class="nav-icon">▶</span>Videos</button>
 <button data-page="friendsPage"><span class="nav-icon">♙</span>Friends</button>
-<button data-page="messagesPage"><span class="nav-icon">✉</span>Messages</button>
+<button data-page="messagesPage"><span class="nav-icon">✉</span>Messages<span id="messageBadge" class="notification-badge hidden">0</span></button>
 <button data-page="businessPage"><span class="nav-icon">▣</span>Business</button>
 </nav>
 
@@ -259,7 +271,9 @@ let currentUser=null;
 let currentProfile={};
 let videoObserver=null;
 let activeConversationUser=null;
+let activeConversationName="";
 let messageRefreshTimer=null;
+let inboxRefreshTimer=null;
 
 function showStatus(message){statusBox.textContent=message}
 function getValue(id){return document.getElementById(id).value.trim()}
@@ -274,7 +288,10 @@ button.classList.toggle("active",button.dataset.page===pageId);
 if(pageId==="videosPage")loadVideos();
 if(pageId==="friendsPage")loadMembers();
 if(pageId==="businessPage")loadBusinesses();
-if(pageId==="messagesPage")loadConversationList();
+if(pageId==="messagesPage"){
+loadConversationList();
+updateUnreadBadge();
+}
 window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -368,10 +385,10 @@ content.append(p);
 }
 const messageButton=document.createElement("button");
 messageButton.textContent="Send Private Message";
-messageButton.addEventListener("click",()=>{
+messageButton.addEventListener("click",async()=>{
 modal.classList.add("hidden");
-openChat(userId,profile.display_name||"Member");
 showPage("messagesPage");
+await openChat(userId,profile.display_name||"Member");
 });
 if(currentUser&&userId!==currentUser.id)content.append(messageButton);
 }
@@ -409,10 +426,21 @@ if(currentUser){
 const name=currentUser.user_metadata?.display_name||currentUser.email;
 document.getElementById("welcome").textContent="Welcome, "+name+"!";
 await loadMyProfile();
+await updateUnreadBadge();
+await loadConversationList();
+if(inboxRefreshTimer)clearInterval(inboxRefreshTimer);
+inboxRefreshTimer=setInterval(()=>{
+if(currentUser){
+updateUnreadBadge();
+if(document.getElementById("messagesPage").classList.contains("active"))loadConversationList();
+}
+},10000);
 showStatus("You're logged in to FRIENDLY MEET.");
 }else{
 avatarPreview.classList.add("hidden");
 document.getElementById("profileForm").classList.add("hidden");
+document.getElementById("messageBadge").classList.add("hidden");
+if(inboxRefreshTimer)clearInterval(inboxRefreshTimer);
 showStatus("Welcome! Sign up or log in to share a post or video.");
 }
 await loadPosts();
@@ -722,13 +750,14 @@ const name=getValue("name"),email=getValue("email"),password=document.getElement
 if(!name||!email||password.length<6){showStatus("Enter your name, email and a password of at least 6 characters.");return}
 showStatus("Creating your account...");
 const {data,error}=await client.auth.signUp({
-  email,
-  password,
-  options:{
-    data:{display_name:name},
-    emailRedirectTo:"https://kuwaitson001.github.io/Friendly-Meet/"
-  }
-});if(error)showStatus(error.message);
+email,
+password,
+options:{
+data:{display_name:name},
+emailRedirectTo:"https://kuwaitson001.github.io/Friendly-Meet/"
+}
+});
+if(error)showStatus(error.message);
 else if(data.session)await refreshAccount();
 else showStatus("Account created! Check your email and confirm your address before logging in.");
 });
@@ -818,77 +847,264 @@ box.append(row);
 }
 document.getElementById("refreshMembers").addEventListener("click",loadMembers);
 
-/* PRIVATE MESSAGES */
+/* PRIVATE MESSAGES AND READ RECEIPTS */
+
+async function updateUnreadBadge(){
+const badge=document.getElementById("messageBadge");
+if(!currentUser){badge.classList.add("hidden");return}
+const {count,error}=await client.from("messages")
+.select("id",{count:"exact",head:true})
+.eq("recipient_id",currentUser.id)
+.eq("is_read",false);
+if(error){
+console.error("Unread count error:",error.message);
+return;
+}
+const unread=count||0;
+badge.textContent=unread>99?"99+":String(unread);
+badge.classList.toggle("hidden",unread===0);
+}
+
 async function loadConversationList(){
-const box=document.getElementById("messageStatus");
-if(!currentUser){box.textContent="Please log in to use private messages.";return}
-box.textContent="Choose a member from the Friends tab to start a conversation.";
+const box=document.getElementById("conversationList");
+const status=document.getElementById("messageStatus");
+if(!currentUser){
+status.textContent="Please log in to use private messages.";
+box.replaceChildren();
+return;
+}
+
+status.textContent="Loading your conversations...";
+box.replaceChildren();
+
+const {data,error}=await client.from("messages")
+.select("id,sender_id,recipient_id,content,created_at,is_read")
+.or("sender_id.eq."+currentUser.id+",recipient_id.eq."+currentUser.id)
+.order("created_at",{ascending:false});
+
+if(error){
+status.textContent="Could not load conversations: "+error.message;
+return;
+}
+
+const messages=data||[];
+const latestByUser=new Map();
+
+messages.forEach(message=>{
+const otherUser=message.sender_id===currentUser.id
+?message.recipient_id:message.sender_id;
+if(!otherUser)return;
+if(!latestByUser.has(otherUser)){
+latestByUser.set(otherUser,message);
+}
+});
+
+const otherIds=[...latestByUser.keys()];
+if(!otherIds.length){
+status.textContent="No conversations yet. Visit Friends and send someone a message.";
+return;
+}
+
+const {data:profiles,error:profileError}=await client.from("profiles")
+.select("id,display_name,avatar_url")
+.in("id",otherIds);
+
+if(profileError){
+status.textContent="Could not load conversation profiles: "+profileError.message;
+return;
+}
+
+const profileMap=new Map((profiles||[]).map(profile=>[profile.id,profile]));
+
+status.textContent="Your conversations";
+otherIds.forEach(userId=>{
+const latest=latestByUser.get(userId);
+const profile=profileMap.get(userId);
+const displayName=profile?.display_name||"FRIENDLY MEET member";
+
+const unreadCount=messages.filter(message=>
+message.sender_id===userId&&
+message.recipient_id===currentUser.id&&
+!message.is_read
+).length;
+
+const row=document.createElement("div");
+row.className="conversation-row";
+
+const avatar=document.createElement("img");
+avatar.className="avatar";
+avatar.alt="Profile picture";
+if(profile?.avatar_url)avatar.src=profile.avatar_url;
+
+const info=document.createElement("div");
+info.className="conversation-info";
+
+const name=document.createElement("div");
+name.className="conversation-name";
+name.textContent=displayName;
+
+const preview=document.createElement("div");
+preview.className="conversation-preview";
+preview.textContent=(latest.sender_id===currentUser.id?"You: ":"")+latest.content;
+
+info.append(name,preview);
+row.append(avatar,info);
+
+const right=document.createElement("div");
+right.style.textAlign="right";
+
+const date=document.createElement("div");
+date.className="conversation-time";
+date.textContent=new Date(latest.created_at).toLocaleDateString();
+
+right.append(date);
+
+if(unreadCount){
+const unread=document.createElement("div");
+unread.className="unread-dot";
+unread.textContent=unreadCount>99?"99+":String(unreadCount);
+unread.style.marginTop="6px";
+right.append(unread);
+}
+
+row.append(right);
+row.addEventListener("click",()=>openChat(userId,displayName));
+box.append(row);
+});
 }
 
 async function openChat(userId,displayName){
 if(!currentUser){showStatus("Please log in first.");return}
 if(userId===currentUser.id)return;
+
 activeConversationUser=userId;
+activeConversationName=displayName;
 document.getElementById("chatTitle").textContent="Chat with "+displayName;
 document.getElementById("chatPanel").classList.remove("hidden");
+document.getElementById("conversationList").classList.add("hidden");
 document.getElementById("messageStatus").textContent="Private conversation";
+
 await loadMessages();
+
 if(messageRefreshTimer)clearInterval(messageRefreshTimer);
-messageRefreshTimer=setInterval(()=>{
-if(activeConversationUser)loadMessages();
-},6000);
+messageRefreshTimer=setInterval(async()=>{
+if(activeConversationUser){
+await loadMessages();
+await updateUnreadBadge();
+}
+},5000);
+
+await loadConversationList();
+document.getElementById("conversationList").classList.add("hidden");
 }
 
 async function loadMessages(){
 if(!currentUser||!activeConversationUser)return;
+
 const box=document.getElementById("chatMessages");
 const {data,error}=await client.from("messages")
-.select("id,sender_id,recipient_id,content,created_at")
+.select("id,sender_id,recipient_id,content,created_at,is_read")
 .or("sender_id.eq."+currentUser.id+",recipient_id.eq."+currentUser.id)
 .order("created_at",{ascending:true});
-if(error){box.textContent="Could not load messages: "+error.message;return}
-box.replaceChildren();
-const messages=(data||[]).filter(m=>
-(m.sender_id===currentUser.id&&m.recipient_id===activeConversationUser)||
-(m.sender_id===activeConversationUser&&m.recipient_id===currentUser.id)
-);
-if(!messages.length){
-box.textContent="No messages yet. Say hello!";
+
+if(error){
+box.textContent="Could not load messages: "+error.message;
 return;
 }
+
+const messages=(data||[]).filter(message=>
+(message.sender_id===currentUser.id&&message.recipient_id===activeConversationUser)||
+(message.sender_id===activeConversationUser&&message.recipient_id===currentUser.id)
+);
+
+box.replaceChildren();
+
+if(!messages.length){
+box.textContent="No messages yet. Say hello!";
+}else{
 messages.forEach(message=>{
 const bubble=document.createElement("div");
-bubble.className="message-bubble"+(message.sender_id===currentUser.id?" mine":"");
+const mine=message.sender_id===currentUser.id;
+bubble.className="message-bubble"+(mine?" mine":"");
+
 const content=document.createElement("div");
 content.textContent=message.content;
+
 const time=document.createElement("div");
 time.className="message-time";
 time.textContent=new Date(message.created_at).toLocaleString();
+
+if(mine){
+const ticks=document.createElement("span");
+ticks.className="message-ticks"+(message.is_read?" read":"");
+ticks.textContent=message.is_read?"✓✓":"✓";
+ticks.title=message.is_read?"Read":"Sent";
+time.append(ticks);
+}
+
 bubble.append(content,time);
 box.append(bubble);
 });
+}
+
 box.scrollTop=box.scrollHeight;
+
+/* Mark incoming messages as read when this conversation is opened */
+const {error:readError}=await client.from("messages")
+.update({is_read:true})
+.eq("sender_id",activeConversationUser)
+.eq("recipient_id",currentUser.id)
+.eq("is_read",false);
+
+if(readError){
+console.error("Could not mark messages as read:",readError.message);
+}else{
+await updateUnreadBadge();
+await loadConversationList();
+if(document.getElementById("chatPanel").classList.contains("hidden")===false){
+document.getElementById("conversationList").classList.add("hidden");
+}
+}
 }
 
 document.getElementById("sendMessage").addEventListener("click",async()=>{
 if(!currentUser||!activeConversationUser)return;
 const content=getValue("messageInput");
 if(!content){showStatus("Write a message first.");return}
+
+const sendButton=document.getElementById("sendMessage");
+sendButton.disabled=true;
+sendButton.textContent="Sending...";
+
 const {error}=await client.from("messages").insert({
 sender_id:currentUser.id,
 recipient_id:activeConversationUser,
 content
 });
-if(error){showStatus("Message could not be sent: "+error.message);return}
+
+sendButton.disabled=false;
+sendButton.textContent="Send Message";
+
+if(error){
+showStatus("Message could not be sent: "+error.message);
+return;
+}
+
 document.getElementById("messageInput").value="";
 await loadMessages();
+await loadConversationList();
+document.getElementById("conversationList").classList.add("hidden");
+await updateUnreadBadge();
 showStatus("Private message sent.");
 });
 
-document.getElementById("closeChat").addEventListener("click",()=>{
+document.getElementById("closeChat").addEventListener("click",async()=>{
 activeConversationUser=null;
-document.getElementById("chatPanel").classList.add("hidden");
 if(messageRefreshTimer)clearInterval(messageRefreshTimer);
+document.getElementById("chatPanel").classList.add("hidden");
+document.getElementById("conversationList").classList.remove("hidden");
+await loadConversationList();
+await updateUnreadBadge();
 });
 
 /* BUSINESS PROMOTIONS */
@@ -966,6 +1182,7 @@ await loadBusinesses();
 client.auth.onAuthStateChange(()=>{
 setTimeout(refreshAccount,0);
 });
+
 refreshAccount();
 </script>
 </body>
