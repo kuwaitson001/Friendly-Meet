@@ -1059,7 +1059,142 @@ $('addStory').onclick=()=>showStatus('Stories layout is ready. Story publishing 
 
 client.auth.onAuthStateChange(()=>setTimeout(refreshAccount,0));
 refreshAccount();
-// FRIENDLY MEET: LIVE ONLINE STATUS UPDATES
+// FRIENDLY MEET: LIVE TYPING INDICATORS
+
+let fmTypingUserId = null;
+let fmTypingTimer = null;
+let fmTypingChannel = null;
+
+const fmTypingIndicator = document.createElement('div');
+fmTypingIndicator.id = 'fmTypingIndicator';
+fmTypingIndicator.style.cssText =
+  'display:none;color:#1684e8;font-size:13px;padding:5px 12px;';
+
+const fmChatTitle = document.getElementById('chatTitle');
+if (fmChatTitle) {
+  fmChatTitle.insertAdjacentElement('afterend', fmTypingIndicator);
+}
+
+function fmShowTyping(text) {
+  fmTypingIndicator.textContent = text;
+  fmTypingIndicator.style.display = text ? 'block' : 'none';
+}
+
+async function fmStopTyping() {
+  clearTimeout(fmTypingTimer);
+
+  if (!fmTypingUserId || !activeChatUser) return;
+
+  await client
+    .from('typing_status')
+    .delete()
+    .eq('user_id', fmTypingUserId)
+    .eq('receiver_id', activeChatUser);
+
+  fmShowTyping('');
+}
+
+async function fmSendTyping() {
+  if (!fmTypingUserId || !activeChatUser) return;
+
+  const messageBox = document.getElementById('messageText');
+  if (!messageBox || !messageBox.value.trim()) {
+    await fmStopTyping();
+    return;
+  }
+
+  await client
+    .from('typing_status')
+    .upsert({
+      user_id: fmTypingUserId,
+      receiver_id: activeChatUser,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'user_id,receiver_id'
+    });
+
+  clearTimeout(fmTypingTimer);
+  fmTypingTimer = setTimeout(fmStopTyping, 3000);
+}
+
+async function fmCheckTyping() {
+  if (!fmTypingUserId || !activeChatUser) {
+    fmShowTyping('');
+    return;
+  }
+
+  const { data } = await client
+    .from('typing_status')
+    .select('user_id,updated_at')
+    .eq('user_id', activeChatUser)
+    .eq('receiver_id', fmTypingUserId)
+    .maybeSingle();
+
+  if (
+    data &&
+    Date.now() - new Date(data.updated_at).getTime() < 6000
+  ) {
+    fmShowTyping('Typing...');
+  } else {
+    fmShowTyping('');
+  }
+}
+
+async function fmStartTypingSystem() {
+  const { data } = await client.auth.getUser();
+
+  if (!data?.user) return;
+
+  fmTypingUserId = data.user.id;
+
+  if (fmTypingChannel) {
+    await client.removeChannel(fmTypingChannel);
+  }
+
+  fmTypingChannel = client
+    .channel('friendly-meet-typing-' + fmTypingUserId)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'typing_status',
+      filter: 'receiver_id=eq.' + fmTypingUserId
+    }, payload => {
+      if (
+        payload.new &&
+        payload.new.user_id === activeChatUser
+      ) {
+        fmCheckTyping();
+      }
+
+      if (
+        payload.old &&
+        payload.old.user_id === activeChatUser
+      ) {
+        fmCheckTyping();
+      }
+    })
+    .subscribe();
+}
+
+const fmMessageInput = document.getElementById('messageText');
+
+if (fmMessageInput) {
+  fmMessageInput.addEventListener('input', fmSendTyping);
+  fmMessageInput.addEventListener('blur', fmStopTyping);
+}
+
+const fmSendButton = document.getElementById('sendMessage');
+
+if (fmSendButton) {
+  fmSendButton.addEventListener('click', () => {
+    setTimeout(fmStopTyping, 500);
+  });
+}
+
+setInterval(fmCheckTyping, 3000);
+
+fmStartTypingSystem();
+  // FRIENDLY MEET: LIVE ONLINE STATUS UPDATES
 
 let friendlyMeetLiveChannel = null;
 
