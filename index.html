@@ -2464,6 +2464,124 @@ button.innerHTML = '🔔<span id="fmNotificationBadge" style="display:none">0</s
   console.log('FRIENDLY MEET calling engine initialized');
 
 })();
+// FRIENDLY MEET CALL HISTORY
+(function () {
+  const style = document.createElement('style');
+  style.textContent = `
+    #fmHistoryButton {
+      background:#2457d6;color:white;border:0;
+      padding:10px 15px;border-radius:9px;
+      margin:8px 0;cursor:pointer;font-weight:bold;
+    }
+    #fmHistoryPanel {
+      display:none;background:white;padding:15px;
+      border-radius:12px;margin:10px 0;
+      box-shadow:0 2px 8px #0002;
+    }
+    .fm-history-item {
+      padding:12px 4px;border-bottom:1px solid #eee;
+    }
+    .fm-history-item strong {display:block;margin-bottom:5px}
+    .fm-history-muted {color:#777;font-size:12px}
+  `;
+  document.head.appendChild(style);
+
+  const button = document.createElement('button');
+  button.id = 'fmHistoryButton';
+  button.textContent = 'Call history';
+
+  const panel = document.createElement('div');
+  panel.id = 'fmHistoryPanel';
+  panel.innerHTML = `
+    <h3>Call history</h3>
+    <div id="fmHistoryList">Loading calls...</div>
+  `;
+
+  const controls = document.getElementById('fmCallControls');
+
+  if (controls) {
+    controls.insertAdjacentElement('afterend', button);
+    button.insertAdjacentElement('afterend', panel);
+  }
+
+  async function loadCallHistory() {
+    const list = document.getElementById('fmHistoryList');
+
+    if (!currentUser) {
+      list.textContent = 'Please log in to view call history.';
+      return;
+    }
+
+    list.textContent = 'Loading calls...';
+
+    const { data, error } = await client
+      .from('call_sessions')
+      .select('id,caller_id,receiver_id,call_type,status,created_at,ended_at,duration_seconds')
+      .or(
+        'caller_id.eq.' + currentUser.id +
+        ',receiver_id.eq.' + currentUser.id
+      )
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      list.textContent = 'Could not load call history: ' + error.message;
+      return;
+    }
+
+    list.replaceChildren();
+
+    if (!data || !data.length) {
+      list.textContent = 'No calls yet.';
+      return;
+    }
+
+    data.forEach(call => {
+      const item = document.createElement('div');
+      item.className = 'fm-history-item';
+
+      const title = document.createElement('strong');
+      const outgoing = call.caller_id === currentUser.id;
+
+      title.textContent =
+        (outgoing ? 'Outgoing' : 'Incoming') +
+        ' ' + (call.call_type || 'audio') + ' call';
+
+      const status = document.createElement('div');
+      status.textContent =
+        call.status === 'ended' ? 'Completed' :
+        call.status === 'rejected' ? 'Rejected' :
+        call.status === 'missed' ? 'Missed' :
+        call.status === 'accepted' ? 'Connected' :
+        call.status === 'ringing' ? 'Ringing' :
+        call.status || 'Unknown';
+
+      const date = document.createElement('div');
+      date.className = 'fm-history-muted';
+      date.textContent = new Date(call.created_at).toLocaleString();
+
+      const duration = document.createElement('div');
+      duration.className = 'fm-history-muted';
+
+      const seconds = Number(call.duration_seconds || 0);
+      duration.textContent = 'Duration: ' +
+        Math.floor(seconds / 60) + 'm ' +
+        (seconds % 60) + 's';
+
+      item.append(title, status, date, duration);
+      list.appendChild(item);
+    });
+  }
+
+  button.addEventListener('click', async () => {
+    const open = panel.style.display === 'block';
+    panel.style.display = open ? 'none' : 'block';
+
+    if (!open) await loadCallHistory();
+  });
+
+  console.log('FRIENDLY MEET call history ready');
+})();
 </script>
 </body>
 </html>
