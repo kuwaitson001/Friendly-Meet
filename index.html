@@ -953,20 +953,56 @@ $('conversationList').classList.add('hidden');
 
 async function loadMessages(){
 if(!currentUser||!activeConversationUser)return;
+
 const box=$('chatMessages');
-const {data,error}=await client.from('messages').select('id,sender_id,recipient_id,content,created_at,is_read').or('sender_id.eq.'+currentUser.id+',recipient_id.eq.'+currentUser.id).order('created_at',{ascending:true});
+
+const {data,error}=await client.from('messages')
+.select('id,sender_id,recipient_id,content,created_at,is_read,message_type,media_url,duration_seconds')
+.or('sender_id.eq.'+currentUser.id+',recipient_id.eq.'+currentUser.id)
+.order('created_at',{ascending:true});
+
 if(error){box.textContent=error.message;return}
-const list=(data||[]).filter(m=>(m.sender_id===currentUser.id&&m.recipient_id===activeConversationUser)||(m.sender_id===activeConversationUser&&m.recipient_id===currentUser.id));
+
+const list=(data||[]).filter(m=>
+(m.sender_id===currentUser.id&&m.recipient_id===activeConversationUser)||
+(m.sender_id===activeConversationUser&&m.recipient_id===currentUser.id)
+);
+
 box.replaceChildren();
+
 if(!list.length)box.textContent='No messages yet. Say hello!';
-list.forEach(m=>{
-const mine=m.sender_id===currentUser.id,b=document.createElement('div');
+
+for(const m of list){
+const mine=m.sender_id===currentUser.id;
+const b=document.createElement('div');
 b.className='message-bubble'+(mine?' mine':'');
+
+if(m.message_type==='voice'&&m.media_url){
+const {data:file,error:fileError}=await client.storage
+.from('voice-notes').createSignedUrl(m.media_url,3600);
+
+if(file&&!fileError){
+const audio=document.createElement('audio');
+audio.controls=true;
+audio.preload='none';
+audio.src=file.signedUrl;
+audio.style.maxWidth='230px';
+b.append(audio);
+}else{
+const unavailable=document.createElement('div');
+unavailable.textContent='Voice note unavailable';
+b.append(unavailable);
+}
+}else{
 const c=document.createElement('div');
 c.textContent=m.content;
+b.append(c);
+}
+
 const t=document.createElement('div');
 t.className='message-time';
 t.textContent=new Date(m.created_at).toLocaleString();
+
 if(mine){
 const ticks=document.createElement('span');
 ticks.className='message-ticks'+(m.is_read?' read':'');
@@ -974,40 +1010,141 @@ ticks.textContent=m.is_read?'✓✓':'✓';
 ticks.title=m.is_read?'Read':'Sent';
 t.append(ticks);
 }
-b.append(c,t);
+
+b.append(t);
 box.append(b);
-});
-box.scrollTop=box.scrollHeight;
-const r=await client.from('messages').update({is_read:true}).eq('sender_id',activeConversationUser).eq('recipient_id',currentUser.id).eq('is_read',false);
-if(r.error)console.error(r.error.message);
-await updateUnreadBadge();
 }
 
-$('sendMessage').onclick=async()=>{
-if(!currentUser||!activeConversationUser)return;
-const content=getValue('messageInput');
-if(!content)return;
-const b=$('sendMessage');
-b.disabled=true;b.textContent='Sending...';
-const {error}=await client.from('messages').insert({sender_id:currentUser.id,recipient_id:activeConversationUser,content});
-b.disabled=false;b.textContent='Send Message';
-if(error){showStatus('Message could not be sent: '+error.message);return}
-$('messageInput').value='';
+box.scrollTop=box.scrollHeight;
+
+const r=await client.from('messages').update({is_read:true})
+.eq('sender_id',activeConversationUser)
+.eq('recipient_id',currentUser.id)
+.eq('is_read',false);
+
+if(r.error)console.error(r.error.message);
+
+await updateUnreadBadge();
+// FRIENDLY MEET VOICE NOTE RECORDER
+
+(function(){
+
+if($('fmVoiceControls'))return;
+
+const input=$('messageInput');
+if(!input)return;
+
+const controls=document.createElement('div');
+controls.id='fmVoiceControls';
+controls.style.cssText='display:flex;align-items:center;gap:10px;margin:10px 0;flex-wrap:wrap;';
+
+const recordBtn=document.createElement('button');
+recordBtn.textContent='🎙️ Record voice note';
+recordBtn.style.cssText='padding:10px 15px;border:0;border-radius:20px;background:#2457d6;color:white;font-weight:bold;';
+
+const status=document.createElement('span');
+status.style.cssText='font-size:13px;';
+
+controls.append(recordBtn,status);
+input.parentElement.insertBefore(controls,input);
+
+let recorder=null;
+let chunks=[];
+let startedAt=0;
+let stream=null;
+
+recordBtn.onclick=async()=>{
+
+if(recorder&&recorder.state==='recording'){
+recorder.stop();
+recordBtn.disabled=true;
+recordBtn.textContent='Sending...';
+return;
+}
+
+try{
+
+if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){
+showStatus('Voice recording is not supported in this browser.');
+return;
+}
+
+stream=await navigator.mediaDevices.getUserMedia({audio:true});
+
+chunks=[];
+recorder=new MediaRecorder(stream);
+startedAt=Date.now();
+
+recorder.ondataavailable=e=>{
+if(e.data&&e.data.size>0)chunks.push(e.data);
+};
+
+recorder.onstop=async()=>{
+
+const duration=Math.round((Date.now()-startedAt)/1000);
+stream.getTracks().forEach(track=>track.stop());
+
+if(duration<1||!chunks.length){
+status.textContent='Recording too short.';
+recordBtn.textContent='🎙️ Record voice note';
+recordBtn.disabled=false;
+return;
+}
+
+try{
+
+const blob=new Blob(chunks,{type:recorder.mimeType||'audio/webm'});
+const path=currentUser.id+'/'+Date.now()+'.webm';
+
+status.textContent='Uploading voice note...';
+
+const upload=await client.storage
+.from('voice-notes')
+.upload(path,blob,{contentType:blob.type,upsert:false});
+
+if(upload.error)throw upload.error;
+
+const result=await client.from('messages').insert({
+sender_id:currentUser.id,
+recipient_id:activeConversationUser,
+content:'Voice note',
+message_type:'voice',
+media_url:path,
+duration_seconds:duration
+});
+
+if(result.error)throw result.error;
+
+status.textContent='Voice note sent!';
 await loadMessages();
 await loadConversationList();
-$('conversationList').classList.add('hidden');
-showStatus('Private message sent.');
+
+}catch(error){
+console.error(error);
+status.textContent='Could not send: '+error.message;
+}
+
+recordBtn.textContent='🎙️ Record voice note';
+recordBtn.disabled=false;
+
 };
 
-$('closeChat').onclick=async()=>{
-activeConversationUser=null;
-if(messageRefreshTimer)clearInterval(messageRefreshTimer);
-$('chatPanel').classList.add('hidden');
-$('conversationList').classList.remove('hidden');
-await loadConversationList();
-await updateUnreadBadge();
+recorder.start();
+recordBtn.textContent='⏹ Stop and send';
+status.textContent='Recording...';
+
+}catch(error){
+console.error(error);
+status.textContent='Microphone error: '+error.message;
+if(stream)stream.getTracks().forEach(track=>track.stop());
+recordBtn.textContent='🎙️ Record voice note';
+recordBtn.disabled=false;
+}
+
 };
 
+})();
+}
 async function loadBusinesses(){
 const box=$('businessList');
 box.textContent='Loading businesses...';
