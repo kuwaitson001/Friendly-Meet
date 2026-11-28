@@ -1145,6 +1145,38 @@ recordBtn.disabled=false;
 
 })();
 }
+$('sendMessage').addEventListener('click', async () => {
+  if (!currentUser || !activeConversationUser) return;
+
+  const input = $('messageInput');
+  const content = input.value.trim();
+
+  if (!content) return;
+
+  const button = $('sendMessage');
+  button.disabled = true;
+
+  try {
+    const { error } = await client.from('messages').insert({
+      sender_id: currentUser.id,
+      recipient_id: activeConversationUser,
+      content: content,
+      message_type: 'text'
+    });
+
+    if (error) throw error;
+
+    input.value = '';
+    await loadMessages();
+    await loadConversationList();
+
+  } catch (error) {
+    console.error(error);
+    alert('Could not send message: ' + error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
 async function loadBusinesses(){
 const box=$('businessList');
 box.textContent='Loading businesses...';
