@@ -1942,6 +1942,528 @@ button.innerHTML = '🔔<span id="fmNotificationBadge" style="display:none">0</s
 
   console.log('FRIENDLY MEET notifications initialized');
 })();
+// FRIENDLY MEET AUDIO AND VIDEO CALL INTERFACE
+(function(){
+
+  const callStyle = document.createElement('style');
+
+  callStyle.textContent = `
+    #fmCallControls {
+      display:flex;
+      gap:8px;
+      margin:10px 0;
+      flex-wrap:wrap;
+    }
+
+    #fmCallControls button,
+    #fmIncoming button,
+    #fmCallEnd {
+      border:0;
+      border-radius:9px;
+      padding:11px 15px;
+      cursor:pointer;
+      font-weight:bold;
+    }
+
+    #fmAudioCall {background:#16834a;color:white;}
+    #fmVideoCall {background:#2457d6;color:white;}
+    #fmCallEnd {background:#d93025;color:white;}
+
+    #fmCallPanel {
+      display:none;
+      position:fixed;
+      inset:0;
+      z-index:99999;
+      background:#101010;
+      color:white;
+      padding:20px;
+      box-sizing:border-box;
+      text-align:center;
+    }
+
+    #fmRemoteVideo {
+      width:100%;
+      max-height:65vh;
+      background:#222;
+      border-radius:12px;
+    }
+
+    #fmLocalVideo {
+      width:110px;
+      position:absolute;
+      right:20px;
+      bottom:100px;
+      border:2px solid white;
+      border-radius:10px;
+    }
+
+    #fmIncoming {
+      display:none;
+      position:fixed;
+      z-index:100000;
+      left:10px;
+      right:10px;
+      top:20px;
+      background:white;
+      color:#111;
+      padding:18px;
+      border-radius:12px;
+      box-shadow:0 3px 20px #0005;
+      text-align:center;
+    }
+  `;
+
+  document.head.appendChild(callStyle);
+
+  const controls = document.createElement('div');
+  controls.id = 'fmCallControls';
+
+  controls.innerHTML = `
+    <button id="fmAudioCall">Audio call</button>
+    <button id="fmVideoCall">Video call</button>
+  `;
+
+  const messageInput = document.getElementById('messageInput');
+
+  if(messageInput && messageInput.parentNode){
+    messageInput.parentNode.insertBefore(
+      controls,
+      messageInput
+    );
+  }
+
+  const incoming = document.createElement('div');
+  incoming.id = 'fmIncoming';
+
+  incoming.innerHTML = `
+    <h3 id="fmIncomingText">Incoming call</h3>
+    <button id="fmAcceptCall">Answer</button>
+    <button id="fmRejectCall">Decline</button>
+  `;
+
+  document.body.appendChild(incoming);
+
+  const callPanel = document.createElement('div');
+  callPanel.id = 'fmCallPanel';
+
+  callPanel.innerHTML = `
+    <h3 id="fmCallTitle">FRIENDLY MEET CALL</h3>
+    <video id="fmRemoteVideo" autoplay playsinline></video>
+    <video id="fmLocalVideo" autoplay muted playsinline></video>
+    <audio id="fmRemoteAudio" autoplay></audio>
+    <p id="fmCallStatus">Connecting...</p>
+    <button id="fmCallEnd">End call</button>
+  `;
+
+  document.body.appendChild(callPanel);
+
+  console.log('FRIENDLY MEET call interface added');
+
+})();
+// FRIENDLY MEET WEBRTC CALLING ENGINE
+(function(){
+
+  let fmPeer = null;
+  let fmLocalStream = null;
+  let fmCallId = null;
+  let fmCallType = 'audio';
+  let fmCallRole = '';
+  let fmIncomingCall = null;
+  let fmCallBusy = false;
+  let fmSeenCandidates = new Set();
+  let fmPendingCandidates = [];
+  let fmCallPoll = null;
+  let fmCandidatePoll = null;
+  let fmSessionPoll = null;
+
+  const fmAudio = document.getElementById('fmAudioCall');
+  const fmVideo = document.getElementById('fmVideoCall');
+  const fmEnd = document.getElementById('fmCallEnd');
+  const fmPanel = document.getElementById('fmCallPanel');
+  const fmIncoming = document.getElementById('fmIncoming');
+  const fmRemoteVideo = document.getElementById('fmRemoteVideo');
+  const fmLocalVideo = document.getElementById('fmLocalVideo');
+  const fmRemoteAudio = document.getElementById('fmRemoteAudio');
+  const fmStatus = document.getElementById('fmCallStatus');
+
+  const fmICE = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+  };
+
+  function fmShowCall(type) {
+    fmPanel.style.display = 'block';
+    fmRemoteVideo.style.display =
+      type === 'video' ? 'block' : 'none';
+    fmLocalVideo.style.display =
+      type === 'video' ? 'block' : 'none';
+    fmRemoteAudio.style.display = 'none';
+    document.getElementById('fmCallTitle').textContent =
+      type === 'video' ? 'FRIENDLY MEET VIDEO CALL' :
+      'FRIENDLY MEET AUDIO CALL';
+  }
+
+  async function fmStartMedia(type) {
+    fmLocalStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: type === 'video'
+    });
+
+    fmLocalVideo.srcObject = fmLocalStream;
+  }
+
+  function fmCreatePeer() {
+    fmPeer = new RTCPeerConnection(fmICE);
+
+    fmLocalStream.getTracks().forEach(track => {
+      fmPeer.addTrack(track, fmLocalStream);
+    });
+
+    fmPeer.ontrack = event => {
+      const stream = event.streams[0];
+
+      if (fmCallType === 'video') {
+        fmRemoteVideo.srcObject = stream;
+      } else {
+        fmRemoteAudio.srcObject = stream;
+      }
+    };
+
+    fmPeer.onicecandidate = async event => {
+      if (!event.candidate) return;
+
+      const item = {
+        call_id: fmCallId,
+        user_id: currentUser.id,
+        candidate: event.candidate.toJSON()
+      };
+
+      if (!fmCallId) {
+        fmPendingCandidates.push(item);
+        return;
+      }
+
+      const { error } = await client
+        .from('call_candidates')
+        .insert(item);
+
+      if (error) console.error(error.message);
+    };
+
+    fmPeer.onconnectionstatechange = () => {
+      if (!fmPeer) return;
+
+      fmStatus.textContent =
+        'Connection: ' + fmPeer.connectionState;
+
+      if (
+        fmPeer.connectionState === 'failed' ||
+        fmPeer.connectionState === 'disconnected'
+      ) {
+        fmStatus.textContent =
+          'Connection interrupted. Check your internet.';
+      }
+    };
+  }
+
+  async function fmFlushCandidates() {
+    for (const item of fmPendingCandidates) {
+      const { error } = await client
+        .from('call_candidates')
+        .insert(item);
+
+      if (error) console.error(error.message);
+    }
+
+    fmPendingCandidates = [];
+  }
+
+  async function fmCheckCandidates() {
+    if (!fmCallId || !fmPeer || !fmPeer.remoteDescription) return;
+
+    const { data, error } = await client
+      .from('call_candidates')
+      .select('id,user_id,candidate')
+      .eq('call_id', fmCallId);
+
+    if (error) {
+      console.error(error.message);
+      return;
+    }
+
+    for (const item of data || []) {
+      if (
+        item.user_id === currentUser.id ||
+        fmSeenCandidates.has(item.id)
+      ) continue;
+
+      fmSeenCandidates.add(item.id);
+
+      try {
+        await fmPeer.addIceCandidate(
+          new RTCIceCandidate(item.candidate)
+        );
+      } catch (error) {
+        console.error('ICE candidate:', error);
+      }
+    }
+  }
+
+  function fmStartCandidateUpdates() {
+    clearInterval(fmCandidatePoll);
+
+    fmCandidatePoll = setInterval(
+      fmCheckCandidates,
+      1500
+    );
+  }
+
+  async function fmStartOutgoing(type) {
+    if (!currentUser) {
+      alert('Please log in first.');
+      return;
+    }
+
+    if (!activeConversationUser) {
+      alert('Open a friend chat before making a call.');
+      return;
+    }
+
+    if (fmCallBusy) return;
+
+    try {
+      fmCallBusy = true;
+      fmCallType = type;
+      fmCallRole = 'caller';
+      fmShowCall(type);
+      fmStatus.textContent = 'Starting call...';
+
+      await fmStartMedia(type);
+      fmCreatePeer();
+
+      const offer = await fmPeer.createOffer();
+      await fmPeer.setLocalDescription(offer);
+
+      const { data, error } = await client
+        .from('call_sessions')
+        .insert({
+          caller_id: currentUser.id,
+          receiver_id: activeConversationUser,
+          call_type: type,
+          offer: fmPeer.localDescription.toJSON(),
+          status: 'ringing'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      fmCallId = data.id;
+
+      await fmFlushCandidates();
+      fmStartCandidateUpdates();
+
+      fmStatus.textContent = 'Calling your friend...';
+
+      fmStartSessionUpdates();
+
+    } catch (error) {
+      console.error(error);
+      alert('Could not start call: ' + error.message);
+      await fmFinishCall(false);
+    }
+  }
+
+  async function fmCheckIncoming() {
+    if (!currentUser || fmCallBusy) return;
+
+    const { data, error } = await client
+      .from('call_sessions')
+      .select('*')
+      .eq('receiver_id', currentUser.id)
+      .eq('status', 'ringing')
+      .limit(1);
+
+    if (error) {
+      console.error(error.message);
+      return;
+    }
+
+    if (!data || !data.length) return;
+
+    fmIncomingCall = data[0];
+
+    document.getElementById('fmIncomingText').textContent =
+      fmIncomingCall.call_type === 'video'
+        ? 'Incoming video call'
+        : 'Incoming audio call';
+
+    fmIncoming.style.display = 'block';
+  }
+
+  async function fmAcceptIncoming() {
+    if (!fmIncomingCall || fmCallBusy) return;
+
+    try {
+      fmCallBusy = true;
+      fmCallRole = 'receiver';
+      fmCallId = fmIncomingCall.id;
+      fmCallType = fmIncomingCall.call_type;
+
+      fmIncoming.style.display = 'none';
+      fmShowCall(fmCallType);
+      fmStatus.textContent = 'Answering call...';
+
+      await fmStartMedia(fmCallType);
+      fmCreatePeer();
+
+      await fmPeer.setRemoteDescription(
+        new RTCSessionDescription(fmIncomingCall.offer)
+      );
+
+      const answer = await fmPeer.createAnswer();
+
+      await fmPeer.setLocalDescription(answer);
+
+      const { error } = await client
+        .from('call_sessions')
+        .update({
+          answer: fmPeer.localDescription.toJSON(),
+          status: 'accepted'
+        })
+        .eq('id', fmCallId);
+
+      if (error) throw error;
+
+      fmStartCandidateUpdates();
+      fmStartSessionUpdates();
+
+      fmStatus.textContent = 'Call connected';
+
+    } catch (error) {
+      console.error(error);
+      alert('Could not answer call: ' + error.message);
+      await fmFinishCall(true);
+    }
+  }
+
+  function fmStartSessionUpdates() {
+    clearInterval(fmSessionPoll);
+
+    fmSessionPoll = setInterval(async () => {
+      if (!fmCallId) return;
+
+      const { data, error } = await client
+        .from('call_sessions')
+        .select('status,answer')
+        .eq('id', fmCallId)
+        .single();
+
+      if (error || !data) return;
+
+      if (
+        data.status === 'rejected' ||
+        data.status === 'ended'
+      ) {
+        fmStatus.textContent = 'Call ended.';
+        await fmFinishCall(false);
+        return;
+      }
+
+      if (
+        fmCallRole === 'caller' &&
+        data.status === 'accepted' &&
+        data.answer &&
+        fmPeer &&
+        !fmPeer.currentRemoteDescription
+      ) {
+        try {
+          await fmPeer.setRemoteDescription(
+            new RTCSessionDescription(data.answer)
+          );
+
+          fmStatus.textContent = 'Call connected';
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }, 1200);
+  }
+
+  async function fmFinishCall(updateDatabase = true) {
+    const oldCallId = fmCallId;
+
+    clearInterval(fmSessionPoll);
+    clearInterval(fmCandidatePoll);
+
+    if (updateDatabase && oldCallId) {
+      const { error } = await client
+        .from('call_sessions')
+        .update({ status: 'ended' })
+        .eq('id', oldCallId);
+
+      if (error) console.error(error.message);
+    }
+
+    if (fmPeer) {
+      fmPeer.close();
+      fmPeer = null;
+    }
+
+    if (fmLocalStream) {
+      fmLocalStream.getTracks().forEach(track => track.stop());
+      fmLocalStream = null;
+    }
+
+    fmRemoteVideo.srcObject = null;
+    fmLocalVideo.srcObject = null;
+    fmRemoteAudio.srcObject = null;
+
+    fmPanel.style.display = 'none';
+    fmIncoming.style.display = 'none';
+
+    fmCallId = null;
+    fmIncomingCall = null;
+    fmCallBusy = false;
+    fmSeenCandidates.clear();
+    fmPendingCandidates = [];
+  }
+
+  fmAudio.addEventListener('click', () => {
+    fmStartOutgoing('audio');
+  });
+
+  fmVideo.addEventListener('click', () => {
+    fmStartOutgoing('video');
+  });
+
+  fmEnd.addEventListener('click', () => {
+    fmFinishCall(true);
+  });
+
+  document.getElementById('fmAcceptCall')
+    .addEventListener('click', fmAcceptIncoming);
+
+  document.getElementById('fmRejectCall')
+    .addEventListener('click', async () => {
+      if (fmIncomingCall) {
+        await client
+          .from('call_sessions')
+          .update({ status: 'rejected' })
+          .eq('id', fmIncomingCall.id);
+      }
+
+      fmIncomingCall = null;
+      fmIncoming.style.display = 'none';
+    });
+
+  setInterval(fmCheckIncoming, 2500);
+
+  console.log('FRIENDLY MEET calling engine initialized');
+
+})();
 </script>
 </body>
 </html>
