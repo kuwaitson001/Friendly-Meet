@@ -1620,10 +1620,23 @@ $('sendMessage').addEventListener('click', () => {
   setTimeout(fmClearTyping, 300);
 });
 
-$('closeChat').addEventListener('click', () => {
+$('closeChat').addEventListener('click', async () => {
   fmClearTyping();
   fmShowTyping('');
   fmTypingReceiver = null;
+
+  if (messageRefreshTimer) {
+    clearInterval(messageRefreshTimer);
+    messageRefreshTimer = null;
+  }
+
+  activeConversationUser = null;
+  activeConversationName = '';
+
+  $('chatPanel').classList.add('hidden');
+  $('conversationList').classList.remove('hidden');
+
+  await loadConversationList();
 });
 
 setInterval(() => {
