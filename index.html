@@ -2320,8 +2320,9 @@ button.innerHTML = '🔔<span id="fmNotificationBadge" style="display:none">0</s
     if (!fmIncomingCall || fmCallBusy) return;
 
     try {
-      fmCallBusy = true;
-      fmCallRole = 'receiver';
+try {
+  clearTimeout(window.fmMissedCallTimer);
+  fmCallBusy = true;e      fmCallRole = 'receiver';
       fmCallId = fmIncomingCall.id;
       fmCallType = fmIncomingCall.call_type;
 
@@ -2407,7 +2408,7 @@ button.innerHTML = '🔔<span id="fmNotificationBadge" style="display:none">0</s
 
   async function fmFinishCall(updateDatabase = true) {
     const oldCallId = fmCallId;
-
+clearTimeout(window.fmMissedCallTimer);
     clearInterval(fmSessionPoll);
     clearInterval(fmCandidatePoll);
 
@@ -2459,15 +2460,20 @@ button.innerHTML = '🔔<span id="fmNotificationBadge" style="display:none">0</s
   document.getElementById('fmAcceptCall')
     .addEventListener('click', fmAcceptIncoming);
 
-  document.getElementById('fmRejectCall')
-    .addEventListener('click', async () => {
-      if (fmIncomingCall) {
-        await client
-          .from('call_sessions')
-          .update({ status: 'rejected' })
-          .eq('id', fmIncomingCall.id);
-      }
+document.getElementById('fmRejectCall')
+  .addEventListener('click', async () => {
+    clearTimeout(window.fmMissedCallTimer);
 
+    if (fmIncomingCall) {
+      await client
+        .from('call_sessions')
+        .update({ status: 'rejected' })
+        .eq('id', fmIncomingCall.id);
+    }
+
+    fmIncomingCall = null;
+    fmIncoming.style.display = 'none';
+  });
       fmIncomingCall = null;
       fmIncoming.style.display = 'none';
     });
